@@ -1630,7 +1630,6 @@ int main(int argc,char *argv[]) {
         if(!out2) cerr<< "ERROR with info file"<< endl;
     }
     Initialise();           /* Read global parameters */
-    
     AllocMem();             /* Memory allocation */
     
     if(_FromData){
@@ -1642,6 +1641,7 @@ int main(int argc,char *argv[]) {
     
     cout << "klight is: " << klight << endl;
     cout << "CO2 concentration is: " << Cair << endl;
+
     
     /***********************/
     /*** Evolution loop  ***/
@@ -1780,6 +1780,7 @@ void Initialise() {
         In >> Cair; In.getline(buffer,128,'\n');
         iCair = 1.0/Cair;
         if (_NDD) {
+            cout << "argh! it's in the conditional!" << endl;
             In >> R; In.getline(buffer,128,'\n');
             In >> deltaR; In.getline(buffer,128,'\n');
             In >> deltaD; In.getline(buffer,128,'\n');

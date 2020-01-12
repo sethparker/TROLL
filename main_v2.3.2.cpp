@@ -1838,7 +1838,10 @@ void Initialise() {
     
     /*** Initialization of species ***/
     /*********************************/
-    
+    In.getline(buffer,128,'\n');
+    In.getline(buffer,128,'\n');
+    In.getline(buffer,128,'\n');
+
     int sp;
     if(NULL==(S=new Species[numesp+1])) {
         cerr<<"!!! Mem_Alloc\n";
@@ -1855,8 +1858,7 @@ void Initialise() {
     
     In.getline(buffer,128,'\n');
     In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');
-    
+        
     if(NULL==(Temperature=new float[iterperyear])) {                                // rk, the current structure of code suppose that environment is periodic (a period = a year), if one want to make climate vary, with interannual variation and climate change along the simulation, one just need to provide the full climate input of the whole simulation (ie number of columns=iter and not iterperyear) and change iterperyear by nbiter here.
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Temperature" << endl;

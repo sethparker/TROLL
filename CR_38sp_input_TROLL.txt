@@ -1,0 +1,94 @@
+#############################################	
+###  Parameter file for the TROLL program ###	
+#############################################	
+###	GENERAL PARAMETERS
+700	/* cols # nb of columns */
+700	/* rows # nb of rows  */
+6000	/* nbiter # total nb of timesteps */
+12	/* number of iteration per year */
+1	/* NV # vertical nb of cells (nb per m) */
+1	/* NH # horizontal nb of cells (nb per m) */
+4	/* nbout # Number of outputs */ 
+38	/* numesp # Number of species */
+0.05	/* p # light incidence param (diff through turbid medium) */
+0.030	0.108	0.208	0.304	0.473	0.617	0.723	0.823	0.925	0.965	0.995	0.988	1.000	0.942	0.854	0.766	0.646	0.493	0.360	0.277	0.183	0.102	0.058	0.022   /* normalized daily light course (from 7am to 7pm, with a half-hour time-step */
+0.012	0.018	0.042	0.087	0.175	0.304	0.445	0.569	0.672	0.767	0.856	0.915	0.961	0.986	1.000	0.985	0.952	0.908	0.863	0.820	0.767	0.699	0.611	0.498   /* normalized daily VPD course (from 7am to 7pm, with a half-hour time-step */
+0.768	0.776	0.795	0.820	0.851	0.884	0.912	0.934	0.950	0.966	0.980	0.989	0.997	0.999	1.000	0.9996	0.990	0.982	0.974	0.966	0.957	0.945	0.929	0.906   /* normalized daily T course (from 7am to 7pm, with a half-hour time-step */
+###	Characters shared by species											
+0.9	/* klight # light attenuation in the canopy Beer-Lambert */
+0.06	/* phi # quantum yield (in micromol C/micromol photon) */	
+3.77	/* g1 # stomatal conductance # Added by Sparker 12/12/2019 */										
+0.1	/* vC  # variance of the flexion moment */											
+0.01	/* DBH0 # initial dbh (m) */											
+1	/* H0 # initial height (m) */											
+0.5	/* ra0 # initial crown radius (in m) */											
+10	/* ra1 # crown radius - dbh slope */											
+0.3	/* de0 # initial crown depth(in m) */											
+0.12	/* de1 # Crown_Depth/height slope (m/m) */											
+0.8	/* dens # leaf density (m^2/m^2) */
+0.35	/* fraction of biomass allocated to above ground wood (branches+stem) */
+0.30	/* fraction of biomass allocated to canopy (leaves + reproductive organs + twigs) */											
+200	/* constant used to scale total seed rain per hectare across species (in next computation) */
+10	/* nb of seeds produced and dispersed by each mature tree when SEEDTRADEOFF is not defined */
+0.035	/* minimal death rate
+0.035	/* m1 (slope of death rate)
+405	/* atmospheric CO2 concentration in micromol/mol */
+15  /* R # for NDD */
+0.5 /* deltaR # for NDD */
+0 /* deltaD # for NDD */
+					
+###	Species description									
+****	Nmass	LMA	wsg	dmax	hmax	ah	tmax	seedmass	Freg	distgr	Pmass	g1
+Alvaradoa_amorphoides	0.0214	74.775	0.584	0.5	24.44	0.892	1	0.0078	40	0.00145	3.77
+Annona_reticulata	0.0350	74.529	0.503	0.5	24.44	0.892	1	0.2392	40	0.00142	3.77
+Brosimum_alicastrum	0.0201	104.281	0.760	0.5	17.31	0.117	1	1.2486	40	0.00097	3.77
+Bursera_simaruba	0.0179	78.3503	0.360	0.5	17.23	0.160	1	0.4387	40	0.00110	3.03167
+Byrsonima_crassifolia	0.0135	145.846	0.614	0.5	24.44	0.892	1	0.1045	40	0.00060	3.77
+Caesalpinia_eriostachys	0.0256	117.044	0.798	0.5	17.31	0.117	1	0.2297	40	0.00178	3.77
+Calycophyllum_candidissimum	0.0143	84.783	0.775	0.5	17.31	0.117	1	0.0087	40	0.00091	3.77
+Cecropia_peltata	0.0245	94.412	0.324	0.5	17.23	0.160	1	0.0006	40	0.00121	3.77
+Chomelia_spinosa	0.0263	65.491	0.575	0.5	24.44	0.892	1	0.0150	40	0.00118	3.77
+Cochlospermum_vitifolium	0.0206	88.9	0.182	0.5	17.23	0.160	1	0.0330	40	0.00098	17.504
+Cordia_coloccoca	0.0218	137.796	0.561	0.5	24.44	0.892	1	0.0661	40	0.00102	3.77
+Dalbergia_retusa	0.0243	147.711	0.803	0.5	17.92	0.279	1	0.0685	40	0.00084	3.77
+Diospyros_nicaraguensis	0.0164	124.103	0.691	0.5	17.31	0.117	1	0.1783	40	0.00079	3.77
+Genipa_americana	0.0162	121.574	0.726	0.5	17.31	0.117	1	0.0379	40	0.00079	3.77
+Gliricidia_sepium	0.0353	72.56	0.776	0.5	17.31	0.117	1	0.1278	40	0.00125	3.77
+Godmania_aesculifolia	0.0195	122.872	0.536	0.5	24.44	0.892	1	0.0228	40	0.00088	3.77
+Guazuma_ulmifolia	0.0209	114.195	0.737	0.5	17.31	0.117	1	0.0046	40	0.00101	39.88
+Guettarda_macrosperma	0.0251	80.761	0.649	0.5	17.31	0.117	1	0.0380	40	0.00094	3.77
+Hemiangium_excelsum	0.0141	158.873	0.560	0.5	24.44	0.892	1	0.0081	40	0.00066	3.77
+Licania_arborea	0.0143	161.470	0.604	0.5	24.44	0.892	1	0.9234	40	0.00087	3.77
+Lonchocarpus_felipei	0.0320	125.5	0.709	0.5	17.31	0.117	1	0.2823	40	0.00082	3.77
+Luehea_candida	0.0206	62.848	0.700	0.5	17.31	0.117	1	0.0136	40	0.00123	3.77
+Luehea_speciosa	0.0180	135.976	0.673	0.5	17.31	0.117	1	0.0060	40	0.00067	3.77
+Lysiloma_divaricatum	0.0245	87.851	0.733	0.5	17.31	0.117	1	0.0201	40	0.00069	3.77
+Maclura_tinctoria	0.0299	75.002	0.776	0.5	17.31	0.117	1	0.0030	40	0.00183	3.77
+Manilkara_chicle	0.0196	117.922	0.876	0.5	17.92	0.279	1	0.2294	40	0.00098	3.77
+Piscidia_carthagensis	0.0295	87.851	0.645	0.5	17.31	0.117	1	0.0645	40	0.00175	3.77
+Pithecellobium_dulce	0.0358	97.405	0.579	0.5	24.44	0.892	1	0.0810	40	0.00135	3.77
+Rhedera_trinervis	0.0145	133.579	0.744	0.5	17.31	0.117	1	0.0527	40	0.00070	3.77
+Sapranthus_palanga	0.0363	63.614	0.656	0.5	17.31	0.117	10.0311	40	0.00157	3.77
+Sideroxylon_capiri	0.0244	130.775	0.868	0.5	17.92	0.279	1	0.9010	40	0.00090	3.77
+Simarouba_glauca	0.0135	182.537	0.405	0.5	24.44	0.892	1	0.9416	40	0.00071	3.77
+Spondias_mombin	0.0194	133.307	0.428	0.5	24.44	0.892	1	1.2380	40	0.00110	3.77
+Tabebuia_impetiginosa	0.0227	102.192	0.715	0.5	17.31	0.117	1	0.0141	40	0.00090	3.77
+Tabebuia_ochracea	0.0256	131.973	0.804	0.5	17.92	0.279	1	0.0114	40	0.00120	3.77
+Tabebuia_rosea	0.0151	137.58	0.532	0.5	24.44	0.892	1	0.0245	40	0.00095	1.7225
+Thevetia_ovata	0.0162	93.119	0.537	0.5	24.44	0.892	1	0.0932	40	0.00094	3.77
+Trichilia_glabra	0.0276	62.415	0.579	0.5	24.44	0.892	1	0.0852	40	0.00164	3.77
+
+###	Climate (input environment)
+25.47447	26.02723	26.87827	27.58436	26.95839	25.63987	25.61669	25.26543	24.99990	24.10808	24.71997	24.67287	/*Temperature in degree C*/
+31.80744 32.97536 34.77878 34.56497 33.59055 32.74572 31.56214 33.38141 32.52027 31.47137 30.08762	30.68110	/*mean daily max temperature in degree C*/
+20.46967	19.43581	20.49925	21.41797	22.18117	22.49341	22.05788	22.44951	22.34204	21.67528	20.36324	19.95482	/*Night mean temperature in degree C*/
+2.667680	1.862720	3.474484 	38.979400	207.878912	185.370495	129.382399	324.865133	482.741927	627.512581 	60.794477	23.757083	/*Rainfall in mm*/
+4.743377	3.729044	3.737630	2.177179	1.546263	1.718757	1.969709	1.329295	1.287930	1.352197	2.834524	3.138391	/* Wind speed in m.s-1 */
+1068.9858	1161.3120	1201.8429	1184.7427	1066.2297	1089.2176	1052.2864	1027.5731	1009.8498	1019.2220	989.9699	936.0694	/* Daily max irradiance mean in W.m-2 */
+230.8570	260.3836	273.9184	262.9162	218.9156	217.4320	217.0651	218.9930	202.1513	181.1108	191.0537	201.1120	/* Irradiance mean in W.m-2 */
+3.258124	3.366611	3.539805	3.689355	3.556504	3.290260	3.285741	3.217899	3.167432	3.002954	3.114977	3.106226	/* e_s in kPa */
+2.386396	2.277838	2.401391	2.636339	2.745206	2.815141	2.779964	2.804957	2.805104	2.756201	2.578251	2.481656	/* e_a in kPa */
+0.8717287	1.0887729	1.1384139	1.0530157	0.8112990	0.4751185	0.5057769	0.4129415	0.3623286	0.2467531	0.5367259	0.6245706	/* VPD in kPa */
+0.8928521	1.1331983	1.1798440	1.0910447	0.8515628	0.4915727	0.5225666	0.4295619	0.3768662	0.2567764	0.5479230	0.6395238	/* Daily mean VPD in kPa */
+2.317852	2.746779	3.155199	2.854726	2.455671	2.145026	1.859304	2.335404	2.092491	1.859221	1.686632	1.930623	/* daily max VPD in kPa */
+

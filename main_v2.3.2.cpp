@@ -447,12 +447,13 @@ void Species::Init(int nesp,fstream& is) {
     int site;
     float regionalfreq;     // "regional" relative abundance of the species -- new name v.2.2
     float SLA;              // specific leaf area = 1/LMA
-    
+    float dum1, dum2;
+
     /*** Read parameters ***/
     
     //new input file -- in v230
-    is  >> s_name >> s_LMA >> s_Nmass >>  s_Pmass  >> s_wsg >> s_dmax >> s_hmax  >> s_ah >> s_seedmass >> regionalfreq;
-    
+    is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2;
+
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
@@ -1719,6 +1720,7 @@ void Initialise() {
     int ligne;
     
     fstream In(inputfile, ios::in);
+    char stest[256];
     
     /*** Initialization of the simulation parametres ***/
     /***************************************************/
@@ -1838,9 +1840,9 @@ void Initialise() {
     
     /*** Initialization of species ***/
     /*********************************/
-    In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');
+    //In.getline(buffer,128,'\n');
+    //In.getline(buffer,128,'\n');
+    //In.getline(buffer,128,'\n');
 
     int sp;
     if(NULL==(S=new Species[numesp+1])) {
@@ -1848,17 +1850,21 @@ void Initialise() {
         cout<<"!!! Mem_Alloc Species" << endl;
     }
     
-    for(ligne=0;ligne<3;ligne++) In.getline(buffer,128,'\n');                           /* Read species parameters (ifstream In) */
+        for(ligne=0;ligne<3;ligne++) In.getline(buffer,128,'\n');                           /* Read species parameters (ifstream In) */
+
     for(sp=1;sp<=numesp;sp++) {
         S[sp].Init(sp,In);
     }
+
     
     /*** Initialization of environmental variables ***/
     /*************************************************/
     
     In.getline(buffer,128,'\n');
     In.getline(buffer,128,'\n');
-        
+    In.getline(buffer,128,'\n');
+
+
     if(NULL==(Temperature=new float[iterperyear])) {                                // rk, the current structure of code suppose that environment is periodic (a period = a year), if one want to make climate vary, with interannual variation and climate change along the simulation, one just need to provide the full climate input of the whole simulation (ie number of columns=iter and not iterperyear) and change iterperyear by nbiter here.
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Temperature" << endl;
@@ -1866,7 +1872,7 @@ void Initialise() {
     
     for (int i=0; i<iterperyear; i++) In >> Temperature[i];
     In.getline(buffer,128,'\n');
-    
+
     //for (int i=0; i<iterperyear; i++) cout<< "Temperature" << i << "\t"  << Temperature[i] <<  "\t";
     //cout<<endl;
     
@@ -1879,7 +1885,7 @@ void Initialise() {
     
     //for (int i=0; i<iterperyear; i++) cout<< "DailyMaxTemperature" << i << "\t"  << DailyMaxTemperature[i] << "\t";
     //cout<<endl;
-    
+
     if(NULL==(NightTemperature=new float[iterperyear])) {
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc NightTemperature" << endl;

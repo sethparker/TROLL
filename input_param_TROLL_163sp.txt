@@ -33,8 +33,11 @@
 0.035	/* minimal death rate
 0.035	/* m1 (slope of death rate)
 360	/* atmospheric CO2 concentration in micromol/mol */
-					
-###	Species description											
+15 /* NDD Radius in m */
+1 /* NDD relative strength in recruitment */
+1 /* NDD relative strength in mortality */			
+
+###	Species description						
 ****	Nmass	LMA	wsg	dmax	hmax	ah	tmax	Freg	distgr	Pmass	g1
 Oxandra_asbeckii	0.0202	89.68	0.782	0.18	39.54	0.244	1	0.0901557838912827	40	0.00037	5.44284734790579
 Lecythis_persistens	0.0189	130.09	0.686	0.49	55.82	0.371	1	0.0683902331234118	40	5e-04	10.6547960099305
@@ -199,7 +202,7 @@ Protium_morii	0.0219	82.75	0.466	0.27	51.76	0.346	1	0.000110485029278533	40	0.00
 Chrysophyllum_eximium	0.0225	115.18	0.718	0.21	51.76	0.346	1	0.000110485029278533	40	0.00044	14.3441189997069
 Diploon_cuspidatum	0.0227	85.85	0.723	0.21	51.76	0.346	1	0.000110485029278533	40	0.00051	9.16303843998981
 Protium_plagiocarpum	0.0142	67.19	0.65	0.19	51.76	0.346	1	0.000110485029278533	40	0.00042	15.2570807608264
-
+                                                                               
 ###	Climate (input environment)
 24.64982014	24.60624211	24.49933474	24.96279395	24.88365139	24.87594184	24.98313802	25.68910135	26.58033805	26.98619405	25.87259696	25.16530008	/*Temperature in degree C*/
 29.08402	28.86072	28.51707	29.56514	29.00680	29.83177	30.19183	31.34605	32.93941	33.14729	31.72165	30.32959	/*mean daily max temperature in degree C*/

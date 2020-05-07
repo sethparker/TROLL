@@ -477,7 +477,7 @@ void Species::Init(int nesp,fstream& is) {
     else {
         s_nbext = int(regionalfreq*Cseedrain*(sites*LH*LH/10000));
     }
-    
+
     SLA=10000.0/s_LMA;    // computation of specific leaf area in cm^2/g for use in Domingues et al 2010 model of photosynthetic capacities
     
     //s_leaflifespan=1.5+pow(10,(7.18+3.03*log10(s_LMA*0.0001)));           //this is the expression from Reich et al 1991 Oecologia (San Carlos Rio Negro).
@@ -768,7 +768,7 @@ inline float Species::GPPleaf(float PPFD, float VPD, float T) {
     s_fci=g1/(g1+sqrt(VPD));
     
     /* FvCB model */
-    
+
     float I=alpha*PPFD;
     float J = (I+JmaxT-sqrt((JmaxT+I)*(JmaxT+I)-4.0*theta*JmaxT*I))*0.5/theta;
     float A = minf(VcmaxT/(s_fci+KmT),0.25*J/(s_fci+2.0*GammaT))*(s_fci-GammaT);
@@ -932,14 +932,14 @@ void Tree::Birth(Species *S, int nume, int site0) {
     t_Crown_Radius  = ra0;
     t_Crown_Depth = de0;
     t_dens=dens;
-    
+
     t_youngLA=t_dens*PI*t_Crown_Radius*LH*t_Crown_Radius*LH*t_Crown_Depth*LV;
     /* initially, all stems have only young leaves -- LA stands for leaf area */
     t_matureLA=0;           /* this is the amount of leaf area at maturity */
     t_oldLA=0;              /* leaf area of senescing leaves */
     t_leafarea=t_youngLA;   /* should be sum of LA young+mature+old, but the equation is correct initially */
     tempRday=0.0;
-    
+
     float hrealmax=3*t_hmax * t_dbh_thresh/(3*t_dbh_thresh + 2*t_s->s_ah);
     
     t_dbhmature=t_s->s_dmax*0.5; // this correponds to the mean thresholds of tree size to maturity, according to Visser et al. 2016 Functional Ecology (suited to both understory short-statured species, and top canopy large-statured species). NOTE that if we decide to keep it as a fixed species-specific value, this could be defined as a Species calss variable, and computed once in Species::Init. -- v230
@@ -1070,16 +1070,25 @@ void Tree::Fluxh(int h) {
     int count=0,
     xx,yy,radius_int;
     float absorb=0.0;
+    float lai_sum=0.;
     t_PPFD = 0.0;
     t_VPD  = 0.0;
     t_T    = 0.0;
+    float absorb_below=0.;
     radius_int = int(t_Crown_Radius);
     if(radius_int == 0) {
         count=1;
-        if (h < HEIGHT) absorb = minf(LAI3D[h][t_site+SBORD],19.5);
+	// Layer leaf area density
+        if (h < HEIGHT) absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
+        if (h -1 < HEIGHT) absorb_below = minf(LAI3D[h-1][t_site+SBORD],19.5); // cumulative LAI looking upward from height h-1
+
         // absorb = 0.0 by default
-        int intabsorb=int(absorb*20.0);
-        t_PPFD = Wmax*LookUp_flux[intabsorb];
+        int intabsorb=int(absorb*20.0);  // LAD * 20
+        int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
+
+
+        t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]);
+	if(LAI3D[h-1][t_site+SBORD] > 0.)t_PPFD *= 1./LAI3D[h-1][t_site+SBORD];
         t_VPD  = VPDmax*LookUp_VPD[intabsorb];
         t_T    = tmax - LookUp_T[intabsorb];
     }
@@ -1095,16 +1104,19 @@ void Tree::Fluxh(int h) {
                 if(xx*xx+yy*yy <= radius_int*radius_int) {
                     //is the voxel within crown?
                     count++;
+		    lai_sum += LAI3D[h][col+cols*row+SBORD];
                     if (h < HEIGHT) absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
+                    if (h-1 < HEIGHT) absorb_below = minf(LAI3D[h-1][col+cols*row+SBORD],19.5);
                     int intabsorb=int(absorb*20.0);
-                    t_PPFD += Wmax*LookUp_flux[intabsorb];
+                    int intabsorb_below=int(absorb_below*20.0);
+                    t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);
                     t_VPD  += VPDmax*LookUp_VPD[intabsorb];
                     t_T    += tmax - LookUp_T[intabsorb];
                 }
             }
         }
     }
-    t_PPFD *= 1.0/float(count);
+    if(lai_sum > 0.)t_PPFD *= 1.0/lai_sum;
     t_VPD  *= 1.0/float(count);
     t_T    *= 1.0/float(count);
 }
@@ -1151,7 +1163,7 @@ void Tree::Growth() {
     else{
         int crown_base=int(t_Tree_Height-t_Crown_Depth)+1; // for flux above crown base
         int crown_top=int(t_Tree_Height)+1;                // for flux above crown top
-        
+
         for(int h=crown_base; h<=crown_top; h++) {
             Fluxh(h);
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth);
@@ -1184,7 +1196,6 @@ void Tree::Growth() {
     
     t_NPP = 0.75*(t_GPP - 1.5*(t_Rday+t_Rnight+t_Rstem));
     /* Rleaf=Rday+Rnight is multiplied by 1.5 to also account for fine root respiration (cf as in Fyllas et al 2014 and Malhi 2012); Rstem is multiplied by 1.5 to account for coarse root respiration (according to the shoot root biomass ratio of 0.2 - Jérôme's paper in prep- and also to branch respiration (Meir & Grace 2002, Cavaleri 2006, Asao 2005). */
-    
     if(t_NPP<0.0){
         t_NPPneg++;
         t_NPP=0.0;
@@ -1325,6 +1336,10 @@ void Tree::DisperseSeed(){
      light (twice the LCP) */
     /* New v.2.1 threshold of maturity is defined as a size threshold
      (and not age as before), following Wright et al 2005 JTE */
+
+  // DM: Note that t_PPFD varies throughout the plant canopy. It is calculated in sequence
+  // in a loop. The last value is the lowest layer.
+
     if((t_dbh>=t_dbhmature)&&(t_PPFD>2.0*(t_s->s_LCP))) {
         float rho,theta_angle;
         int nbs=0;
@@ -1357,14 +1372,16 @@ void Tree::DisperseSeed(){
 void Tree::Update() {
     
     int death;
-    
+
     if(t_age) {
-        
+
+      //DM: t_PPFD is tricky because it varies throughout the canopy. However, it is not
+      //actually used in DeathRateNDD or DeathRate.
         if(_NDD)
             death = int(genrand2()+t_s->DeathRateNDD(t_PPFD, t_dbh,t_NPPneg, t_NDDfield[t_sp_lab]));
         else
             death = int(genrand2()+t_s->DeathRate(t_PPFD, t_dbh, t_NPPneg));
-        
+
         if(death){
             /* Natural death caused by unsustained photosynthesis and density dependance */
             nbdead_n1++;
@@ -2447,6 +2464,7 @@ void UpdateField() {
         }
     }
     
+
     /*  for(site=0;site<sites;site++)       Trunks shade the cells in which they are
      T[site].TrunkLAI();*/
     
@@ -2519,7 +2537,7 @@ void UpdateField() {
         if(!mpi_rank || S[spp].s_nbind*sites > 50000){
             for(spp=1;spp<=numesp;spp++) {                              /* External seed rain: constant flux from the metacommunity */
                 for(int ii=0;ii<S[spp].s_nbext;ii++){
-                    site = genrand2i()%sites;
+		  site = genrand2i()%sites;  // generates a random number up to sites
                     if(S[spp].s_Seed[site]!=1)
                         S[spp].s_Seed[site] = 1; /* check for optimization */
                 }
@@ -2527,8 +2545,7 @@ void UpdateField() {
         }
     }
 #endif
-    
-    
+
 #ifdef MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif

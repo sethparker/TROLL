@@ -390,8 +390,10 @@ public:
     s_time_young,           /* leaf resident time in the young leaf class */
     s_time_mature,          /* leaf resident time in the mature leaf class */
     s_time_old,             /* leaf resident time in the old leaf class */
-    s_output_field[24];         /* scalar output fields per species (<24) */
-    
+    s_output_field[24],         /* scalar output fields per species (<24) */
+    dummy1,                 /* tmax input, SParker May2020 */
+    dummy2;                 /* g1 input, SParker May2020 */
+
 #ifdef DCELL
     int *s_DCELL;	/* number of seeds from the species in each dcell */
     int *s_Seed;	/* presence/absence of seeds at each site; if def SEEDTRADEOFF, the number of seeds */
@@ -451,7 +453,7 @@ void Species::Init(int nesp,fstream& is) {
     /*** Read parameters ***/
     
     //new input file -- in v230
-    is  >> s_name >> s_LMA >> s_Nmass >>  s_Pmass  >> s_wsg >> s_dmax >> s_hmax  >> s_ah >> s_seedmass >> regionalfreq;
+    is  >> s_name >> s_Nmass >> s_LMA >> s_wsg >> s_dmax >> s_hmax >> s_ah >> dummy1 >> s_seedmass >> regionalfreq >> s_Pmass >> dummy2;
     
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
@@ -1780,7 +1782,6 @@ void Initialise() {
         In >> Cair; In.getline(buffer,128,'\n');
         iCair = 1.0/Cair;
         if (_NDD) {
-            cout << "argh! it's in the conditional!" << endl;
             In >> R; In.getline(buffer,128,'\n');
             In >> deltaR; In.getline(buffer,128,'\n');
             In >> deltaD; In.getline(buffer,128,'\n');
@@ -1838,10 +1839,7 @@ void Initialise() {
     
     /*** Initialization of species ***/
     /*********************************/
-    In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');
-
+  
     int sp;
     if(NULL==(S=new Species[numesp+1])) {
         cerr<<"!!! Mem_Alloc\n";
@@ -1853,12 +1851,14 @@ void Initialise() {
         S[sp].Init(sp,In);
     }
     
+cout << S[2].s_name << S[2].s_wsg << endl;
     /*** Initialization of environmental variables ***/
     /*************************************************/
     
     In.getline(buffer,128,'\n');
     In.getline(buffer,128,'\n');
-        
+    In.getline(buffer,128,'\n');  
+      
     if(NULL==(Temperature=new float[iterperyear])) {                                // rk, the current structure of code suppose that environment is periodic (a period = a year), if one want to make climate vary, with interannual variation and climate change along the simulation, one just need to provide the full climate input of the whole simulation (ie number of columns=iter and not iterperyear) and change iterperyear by nbiter here.
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Temperature" << endl;

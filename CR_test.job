@@ -1,8 +1,5 @@
-#!/bin/bash
-#$ -q long
-#$ -M sparker3@nd.edu
-#$ -m abe
+#!/bin/csh
 #$ -q *@@medvigy
 #$ -pe smp 1
 #$ -N TROLL
-./main_v2.3.2 -iCR_38sp_input.txt -oCR_test
+./main_v2.3.2 -iinput_param_TROLL_163sp.txt -oGtest

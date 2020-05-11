@@ -1129,6 +1129,8 @@ void Tree::Fluxh(int h) {
 
 void Tree::Growth() {
     
+  float layer_prop; //proportion of leaves in a given layer.
+
     /* Flux Tree variables */
     t_GPP=0.0;
     t_NPP=0.0;
@@ -1166,22 +1168,50 @@ void Tree::Growth() {
 
         for(int h=crown_base; h<=crown_top; h++) {
             Fluxh(h);
-            t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth);
-            t_Rday+=tempRday;
+	    float effLA = 378.6 * timestep; // Converts umolC/m2/s into gC/m2/yr.
+	    // Note that this is twice the old 189.3. The old number assumed an 
+	    // average over 12 hours of daylight. However, the dailyGPPleaf had
+	    // already been averaged over a full day. 
+	    effLA *= (0.5*t_leafarea + t_matureLA);
+	    // Seemed strange that only half the young and mature leaves were considered
+	    // active. Now, I consider half the young and all the mature.
+	    if(crown_base != crown_top){
+	      float norm_fac = 1.0*(t_Crown_Depth - crown_top + crown_base + 1);
+	      if(crown_top-crown_base>=2){
+		for(int h=crown_base+1;h <= crown_top-1;h++)
+		  norm_fac += 1.0;    // loop over the crown depth
+	      }
+	      if(h == crown_top){
+		effLA *= (t_Tree_Height - crown_top)/norm_fac;
+	      }else{
+		if(h == crown_base){
+		  effLA *= (crown_base+1-t_Tree_Height+t_Crown_Depth)/norm_fac;
+		}else{
+		  effLA *= 1.0/normfac;
+		}
+	      }
+	    }
+
+            t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
+            t_Rday+=tempRday*effLA*0.4;
+	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
+	    // The calculations of GPP and Rday may be problematic. They output quantities in
+	    // units of umol/m2Leaf/s. They should be multiplied by layer leaf area
+	    // before being summed.
             tempRday=0.0;
         }
-        float inb_layer=1.0/float(crown_top-crown_base+1);  // for averaging procedure
-        t_GPP   *=inb_layer;
-        t_Rday  *=inb_layer;
+	//        float inb_layer=1.0/float(crown_top-crown_base+1);  // for averaging procedure
+        //t_GPP   *=inb_layer;
+        //t_Rday  *=inb_layer;
     }
     
     /* Computation of GPP. New v.2.2: assumes an efficiency of 0.5 for young and old leaves vs. 1 for mature leaves */
     //t_GPP*=(0.5*t_youngLA+t_matureLA+0.5*t_oldLA)*189.3*timestep;
     
     /* effLA is the scaling factor used for all fluxes new in v.2.3.0 */
-    float effLA=0.5*(t_leafarea+t_matureLA)*189.3*timestep;
+    // float effLA=0.5*(t_leafarea+t_matureLA)*189.3*timestep;
     
-    t_GPP*=effLA;
+    //    t_GPP*=effLA;
     
     /* new v.2.2. sapwood thickness (useful to compute stem respiration) */
     float sapthick=0.04;
@@ -1191,8 +1221,7 @@ void Tree::Growth() {
     int convT= int(iTaccuracy*temp); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
     int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
     t_Rstem=sapthick*(t_dbh-sapthick)*(t_Tree_Height-t_Crown_Depth)*LookUp_Rstem[convT];
-    t_Rday *= effLA*0.40;
-    t_Rnight=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
+    //    t_Rday *= effLA*0.40;
     
     t_NPP = 0.75*(t_GPP - 1.5*(t_Rday+t_Rnight+t_Rstem));
     /* Rleaf=Rday+Rnight is multiplied by 1.5 to also account for fine root respiration (cf as in Fyllas et al 2014 and Malhi 2012); Rstem is multiplied by 1.5 to account for coarse root respiration (according to the shoot root biomass ratio of 0.2 - Jérôme's paper in prep- and also to branch respiration (Meir & Grace 2002, Cavaleri 2006, Asao 2005). */

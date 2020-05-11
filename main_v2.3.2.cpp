@@ -1187,13 +1187,14 @@ void Tree::Growth() {
 		if(h == crown_base){
 		  effLA *= (crown_base+1-t_Tree_Height+t_Crown_Depth)/norm_fac;
 		}else{
-		  effLA *= 1.0/normfac;
+		  effLA *= 1.0/norm_fac;
 		}
 	      }
 	    }
 
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
             t_Rday = 0.;
+	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
 	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
 	    // The calculations of GPP and Rday may be problematic. They output quantities in
 	    // units of umol/m2Leaf/s. They should be multiplied by layer leaf area
@@ -1219,7 +1220,6 @@ void Tree::Growth() {
     
     /* new v.2.2 stem respiration -- update lookup v230 */
     int convT= int(iTaccuracy*temp); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
-    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
     t_Rstem=sapthick*(t_dbh-sapthick)*(t_Tree_Height-t_Crown_Depth)*LookUp_Rstem[convT];
     //    t_Rday *= effLA*0.40;
     

@@ -1193,7 +1193,7 @@ void Tree::Growth() {
 	    }
 
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
-            t_Rday+=tempRday*effLA*0.4;
+            t_Rday = 0.;
 	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
 	    // The calculations of GPP and Rday may be problematic. They output quantities in
 	    // units of umol/m2Leaf/s. They should be multiplied by layer leaf area

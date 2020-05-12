@@ -1168,10 +1168,8 @@ void Tree::Growth() {
 
         for(int h=crown_base; h<=crown_top; h++) {
             Fluxh(h);
-	    float effLA = 378.6 * timestep; // Converts umolC/m2/s into gC/m2/yr.
-	    // Note that this is twice the old 189.3. The old number assumed an 
-	    // average over 12 hours of daylight. However, the dailyGPPleaf had
-	    // already been averaged over a full day. 
+	    float effLA = 189.3 * timestep; // Converts umolC/m2/s into gC/m2 assimilated
+	    // during this timestep.
 	    effLA *= (0.5*t_leafarea + t_matureLA);
 	    // Seemed strange that only half the young and mature leaves were considered
 	    // active. Now, I consider half the young and all the mature.
@@ -1191,6 +1189,7 @@ void Tree::Growth() {
 		}
 	      }
 	    }
+	    // The code above computes the proportion of leaf area in this level.
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
             t_Rday = 0.;
 	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---

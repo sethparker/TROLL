@@ -16,7 +16,8 @@
 0.768	0.776	0.795	0.820	0.851	0.884	0.912	0.934	0.950	0.966	0.980	0.989	0.997	0.999	1.000	0.9996	0.990	0.982	0.974	0.966	0.957	0.945	0.929	0.906   /* normalized daily T course (from 7am to 7pm, with a half-hour time-step */
 ###	Characters shared by species											
 0.9	/* klight # light attenuation in the canopy Beer-Lambert */
-0.06	/* phi # quantum yield (in micromol C/micromol photon) */											
+0.06	/* phi # quantum yield (in micromol C/micromol photon) */	
+		
 3.77	/* g1 # stomatal conductance # added by SParker 12/12/19 */
 0.1	/* vC  # variance of the flexion moment */											
 0.01	/* DBH0 # initial dbh (m) */											
@@ -34,8 +35,8 @@
 0.035	/* m1 (slope of death rate)
 360	/* atmospheric CO2 concentration in micromol/mol */
 15 /* NDD Radius in m */
-1 /* NDD relative strength in recruitment */
-1 /* NDD relative strength in mortality */			
+0.5 /* NDD relative strength in recruitment */
+0. /* NDD relative strength in mortality */			
 
 ###	Species description						
 ****	Nmass	LMA	wsg	dmax	hmax	ah	tmax	Freg	distgr	Pmass	g1

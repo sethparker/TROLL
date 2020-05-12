@@ -2,8 +2,8 @@
 ###  Parameter file for the TROLL program ###	
 #############################################	
 ###	GENERAL PARAMETERS
-700	/* cols # nb of columns */
-700	/* rows # nb of rows  */
+400	/* cols # nb of columns */
+400	/* rows # nb of rows  */
 6000	/* nbiter # total nb of timesteps */
 12	/* number of iteration per year */
 1	/* NV # vertical nb of cells (nb per m) */
@@ -17,7 +17,8 @@
 ###	Characters shared by species											
 0.9	/* klight # light attenuation in the canopy Beer-Lambert */
 0.06	/* phi # quantum yield (in micromol C/micromol photon) */	
-3.77	/* g1 # stomatal conductance # Added by Sparker 12/12/2019 */										
+
+3.77	/* g1 # stomatal conductance # Added by Sparker 12/12/2019 */			
 0.1	/* vC  # variance of the flexion moment */											
 0.01	/* DBH0 # initial dbh (m) */											
 1	/* H0 # initial height (m) */											

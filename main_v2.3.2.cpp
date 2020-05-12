@@ -1191,7 +1191,6 @@ void Tree::Growth() {
 		}
 	      }
 	    }
-
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
             t_Rday = 0.;
 	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---

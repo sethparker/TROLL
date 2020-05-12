@@ -1,0 +1,5 @@
+#!/bin/csh
+#$ -q *@@medvigy
+#$ -pe smp 1
+#$ -N TROLL_guana
+./main_v2.3.2 -iCR_38sp_input_TROLL.txt -oGuana

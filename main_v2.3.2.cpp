@@ -453,7 +453,6 @@ void Species::Init(int nesp,fstream& is) {
     
     //new input file -- in v230
     is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2;
-
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)

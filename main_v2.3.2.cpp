@@ -1085,9 +1085,10 @@ void Tree::Fluxh(int h) {
         int intabsorb=int(absorb*20.0);  // LAD * 20
         int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
 
+	float layer_lai = LAI3D[h][t_site+SBORD] - LAI3D[h-1][t_site+SBORD];
 
         t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]);
-	if(LAI3D[h-1][t_site+SBORD] > 0.)t_PPFD *= 1./LAI3D[h-1][t_site+SBORD];
+	if(layer_lai > 0.)t_PPFD *= 1./layer_lai;
         t_VPD  = VPDmax*LookUp_VPD[intabsorb];
         t_T    = tmax - LookUp_T[intabsorb];
     }

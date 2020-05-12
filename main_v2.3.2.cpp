@@ -1170,9 +1170,7 @@ void Tree::Growth() {
             Fluxh(h);
 	    float effLA = 189.3 * timestep; // Converts umolC/m2/s into gC/m2 assimilated
 	    // during this timestep.
-	    effLA *= (0.5*t_leafarea + t_matureLA);
-	    // Seemed strange that only half the young and mature leaves were considered
-	    // active. Now, I consider half the young and all the mature.
+	    effLA *= (0.5 * t_leafarea + 0.5 * t_matureLA);
 	    if(crown_base != crown_top){
 	      float norm_fac = 1.0*(t_Crown_Depth - crown_top + crown_base + 1);
 	      if(crown_top-crown_base>=2){

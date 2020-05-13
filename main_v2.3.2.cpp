@@ -1079,14 +1079,19 @@ void Tree::Fluxh(int h) {
     if(radius_int == 0) {
         count=1;
 	// Layer leaf area density
-        if (h < HEIGHT) absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
-        if (h -1 < HEIGHT) absorb_below = minf(LAI3D[h-1][t_site+SBORD],19.5); // cumulative LAI looking upward from height h-1
+	if (h -1 < HEIGHT) {
+	  absorb_below = minf(LAI3D[h-1][t_site+SBORD],19.5); // cumulative LAI looking upward from height h-1
+	  layer_lai = LAI3D[h-1][t_site+SBORD];
+	}
+        if (h < HEIGHT) {
+	  absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
+	  layer_lai -= LAI3D[h][t_site+SBORD];
+	}
 
         // absorb = 0.0 by default
         int intabsorb=int(absorb*20.0);  // LAD * 20
         int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
 
-	layer_lai = LAI3D[h-1][t_site+SBORD] - LAI3D[h][t_site+SBORD];
         t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]); // umol/m2/s
 	if(layer_lai > 0.)t_PPFD *= 1./layer_lai;
         t_VPD  = VPDmax*LookUp_VPD[intabsorb];
@@ -1104,9 +1109,16 @@ void Tree::Fluxh(int h) {
                 if(xx*xx+yy*yy <= radius_int*radius_int) {
                     //is the voxel within crown?
                     count++;
-		    lai_sum += (LAI3D[h-1][col+cols*row+SBORD] - LAI3D[h][col+cols*row+SBORD]);
-                    if (h < HEIGHT) absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
-                    if (h-1 < HEIGHT) absorb_below = minf(LAI3D[h-1][col+cols*row+SBORD],19.5);
+		    absorb = 0;
+		    absorb_below = 0;
+		    if (h < HEIGHT){
+		      absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
+		      lai_sum -= LAI3D[h][col+cols*row+SBORD];
+		    }
+                    if (h-1 < HEIGHT) {
+		      absorb_below = minf(LAI3D[h-1][col+cols*row+SBORD],19.5);
+		      lai_sum += LAI3D[h-1][col+cols*row+SBORD];
+		    }
                     int intabsorb=int(absorb*20.0);
                     int intabsorb_below=int(absorb_below*20.0);
                     t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);

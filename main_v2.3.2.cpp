@@ -1205,7 +1205,7 @@ void Tree::Growth() {
 	    }
 	    // The code above computes the proportion of leaf area in this level.
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
-            t_Rday = 0.;
+            t_Rday+=tempRday*effLA*0.4.;
 	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
 	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
 	    // The calculations of GPP and Rday may be problematic. They output quantities in

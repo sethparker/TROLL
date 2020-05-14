@@ -771,7 +771,7 @@ inline float Species::GPPleaf(float PPFD, float VPD, float T) {
     float I=alpha*PPFD;
     float J = (I+JmaxT-sqrt((JmaxT+I)*(JmaxT+I)-4.0*theta*JmaxT*I))*0.5/theta;
     float A = minf(VcmaxT/(s_fci+KmT),0.25*J/(s_fci+2.0*GammaT))*(s_fci-GammaT);
-    
+
     return A;
 }
 
@@ -789,6 +789,8 @@ inline float Species::dailyGPPleaf(float PPFD, float VPD, float T, float dens, f
             // new v.2.3.0: compute GPP only if enough light is available threshold is arbitrary, but set to be low: in full sunlight ppfd is aroung 700 W/m2, and even at dawn, it is ca 3% of the max value, or 20 W/m2. The minimum threshold is set to 0.1 W/m2
             // Future update: compute slightly more efficiently, using 3-hourly values? This will have to be aligned with climate forcing layers (e.g. NCAR)
             dailyA+=GPPleaf(ppfde, VPD*daily_vpd[i], T*daily_T[i]);
+
+	//	if(ppfde > 0.1)cout << "ppfde: " << ppfde << " GPP: " << GPPleaf(ppfde,VPD*daily_vpd[i],T*daily_T[i]) << endl;
         //the 6 lines in comment below corresponds to a finer version in which the multiplier is computed and used every 48 half hour, ie. with the corresponding environment instead of assuming a constant multiplier correponding the one at maximum incoming irradiance
         //float hhA=0;
         //hhA=GPPleaf(PPFD*daily_light[i], VPD*daily_vpd[i], T*daily_T[i]);
@@ -1186,14 +1188,16 @@ void Tree::Growth() {
 	    if(crown_base != crown_top){
 	      float norm_fac = 1.0*(t_Crown_Depth - crown_top + crown_base + 1);
 	      if(crown_top-crown_base>=2){
-		for(int h=crown_base+1;h <= crown_top-1;h++)
+		for(int hh=crown_base+1;hh <= crown_top-1;hh++)
 		  norm_fac += 1.0;    // loop over the crown depth
 	      }
 	      if(h == crown_top){
-		effLA *= (t_Tree_Height - crown_top)/norm_fac;
+		effLA *= (t_Tree_Height - crown_top + 1)/norm_fac;
+		//cout << crown_base << " " << h << " " << crown_top << " " << (t_Tree_Height-crown_top + 1)/norm_fac << endl;
 	      }else{
 		if(h == crown_base){
-		  effLA *= (crown_base+1-t_Tree_Height+t_Crown_Depth)/norm_fac;
+		  effLA *= (crown_base-t_Tree_Height+t_Crown_Depth)/norm_fac;
+		  //cout << crown_base << " " << h << " " << crown_top << " " << (crown_base-t_Tree_Height+t_Crown_Depth)/norm_fac << endl;
 		}else{
 		  effLA *= 1.0/norm_fac;
 		}
@@ -1816,7 +1820,7 @@ void Initialise() {
         
         /*Characters shared by species */
         In >> klight; In.getline(buffer,128,'\n');
-        theta = 0.70; /* v.2.3.0 This could be added in the input file, just like klight */
+        theta = 0.95; /* v.2.3.0 This could be added in the input file, just like klight */
         In >> phi; In.getline(buffer,128,'\n');
         In >> g1; In.getline(buffer,128,'\n');
         In >> vC; In.getline(buffer,128,'\n');

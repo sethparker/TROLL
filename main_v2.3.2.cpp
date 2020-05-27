@@ -99,7 +99,7 @@ _TREEFALL=0,            /* computation of the force field if TREEFALL is defined
 _DAILYLIGHT=1,          /* if defined: the rate of carbon assimilation integrates an average daily fluctuation of light (thanks to GPPDaily). Should be defined to ensure an appropriate use of Farquhar model */
 _SEEDTRADEOFF=0,        /* if defined: the number of seeds produced by each tree is determined by the tree NPP allocated to reproduction and the species seed mass, otherwise the number of seeds is fixed; besides, seedling recruitment in one site is not made by randomly and 'equiprobably' picking one species among the seeds present at that site but the probability of recruitment among the present seeds is proportional to the number of seeds (in s_Seed[site]) time the seed mass of each species */
 _NDD=1,                 /* if defined, negative density dependant processes affect both the probability of seedling recruitment and the local tree death rate. The term of density-dependance is computed as the sum of conspecific tree basal area divided by their distance to the focal tree within a neighbourhood (circle of radius 15m) */
-_OUTPUT_reduced=0,      /* reduced set of ouput files */
+_OUTPUT_reduced=1,      /* reduced set of ouput files */
 _OUTPUT_last100=0,      /* output that tracks the last 100 years of the simulation for the whole grid (2D) */
 _OUTPUT_fullLAI=0,       /* output of full final voxel field */
 _FromData=0;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
@@ -456,7 +456,7 @@ void Species::Init(int nesp,fstream& is) {
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
-    
+
     s_seedmass *= 0.4;
     s_iseedmass=1.0/s_seedmass;
     s_ds=40.0;
@@ -508,6 +508,8 @@ void Species::Init(int nesp,fstream& is) {
     
     s_Rdark=s_LMA*(8.5341-130.6*s_Nmass-567.0*s_Pmass-0.0137*s_LMA+11.1*s_Vcmaxm+187600.0*s_Nmass*s_Pmass)*0.001;
     
+    if(s_wsg > 0.4)s_Rdark *= 0.5;
+
     //s_Rdark corresponds to leaf maintenance respiration. From Table 6 in Atkin et al 2015 New phytologist v.2.0 */
     
     //s_Rdark=(82.36*(s_LMA*1e-3)-0.1561)*(s_LMA*1e-3);                 /* from Domingues et al 2007 */
@@ -1205,7 +1207,7 @@ void Tree::Growth() {
 	    }
 	    // The code above computes the proportion of leaf area in this level.
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
-            t_Rday+=tempRday*effLA*0.4.;
+            t_Rday+=tempRday*effLA*0.4;
 	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
 	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
 	    // The calculations of GPP and Rday may be problematic. They output quantities in

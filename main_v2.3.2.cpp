@@ -102,7 +102,7 @@ _NDD=1,                 /* if defined, negative density dependant processes affe
 _OUTPUT_reduced=1,      /* reduced set of ouput files */
 _OUTPUT_last100=0,      /* output that tracks the last 100 years of the simulation for the whole grid (2D) */
 _OUTPUT_fullLAI=0,       /* output of full final voxel field */
-_FromData=0;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
+_FromData=1;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
 
 
 /********************************/
@@ -391,7 +391,8 @@ public:
     s_time_mature,          /* leaf resident time in the mature leaf class */
     s_time_old,             /* leaf resident time in the old leaf class */
     s_output_field[24];         /* scalar output fields per species (<24) */
-    
+    int s_liana;            /* 0 indicates tree, 1 indicates liana */
+
 #ifdef DCELL
     int *s_DCELL;	/* number of seeds from the species in each dcell */
     int *s_Seed;	/* presence/absence of seeds at each site; if def SEEDTRADEOFF, the number of seeds */
@@ -452,10 +453,12 @@ void Species::Init(int nesp,fstream& is) {
     /*** Read parameters ***/
     
     //new input file -- in v230
-    is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2;
+    is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2 >> s_liana;
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
+
+  cout << " s_liana: " << s_liana << endl;
 
     s_seedmass *= 0.4;
     s_iseedmass=1.0/s_seedmass;

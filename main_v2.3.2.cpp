@@ -454,12 +454,9 @@ void Species::Init(int nesp,fstream& is) {
     /*** Read parameters ***/
     
     //new input file -- in v230
-<<<<<<< HEAD
+
     is  >> s_name >> s_Nmass >> s_LMA >> s_wsg >> s_dmax >> s_hmax >> s_ah >> dummy1 >> s_seedmass >> regionalfreq >> s_Pmass >> dummy2;
     
-=======
-    is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2;
->>>>>>> david/radiate
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
@@ -1904,14 +1901,11 @@ void Initialise() {
     
     /*** Initialization of species ***/
     /*********************************/
-<<<<<<< HEAD
-  
-=======
+
     //In.getline(buffer,128,'\n');
     //In.getline(buffer,128,'\n');
     //In.getline(buffer,128,'\n');
 
->>>>>>> david/radiate
     int sp;
     if(NULL==(S=new Species[numesp+1])) {
         cerr<<"!!! Mem_Alloc\n";
@@ -1931,14 +1925,8 @@ cout << S[2].s_name << S[2].s_wsg << endl;
     
     In.getline(buffer,128,'\n');
     In.getline(buffer,128,'\n');
-<<<<<<< HEAD
     In.getline(buffer,128,'\n');  
       
-=======
-    In.getline(buffer,128,'\n');
-
-
->>>>>>> david/radiate
     if(NULL==(Temperature=new float[iterperyear])) {                                // rk, the current structure of code suppose that environment is periodic (a period = a year), if one want to make climate vary, with interannual variation and climate change along the simulation, one just need to provide the full climate input of the whole simulation (ie number of columns=iter and not iterperyear) and change iterperyear by nbiter here.
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Temperature" << endl;

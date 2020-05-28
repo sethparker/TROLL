@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #!/bin/bash
 #$ -q long
 #$ -M sparker3@nd.edu
@@ -6,11 +5,4 @@
 #$ -q *@@medvigy
 #$ -pe smp 1
 #$ -N TROLL
-./main_v2.3.3 -iCR_dbhlim_input.txt -oCR_test
-=======
-#!/bin/csh
-#$ -q *@@medvigy
-#$ -pe smp 1
-#$ -N TROLL
-./main_v2.3.2 -iinput_param_TROLL_163sp.txt -oGtest2
->>>>>>> david/radiate
+./main_v2.3.2 -iCR_38sp_input_TROLL.txt -oCR_test

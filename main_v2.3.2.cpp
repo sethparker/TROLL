@@ -390,10 +390,8 @@ public:
     s_time_young,           /* leaf resident time in the young leaf class */
     s_time_mature,          /* leaf resident time in the mature leaf class */
     s_time_old,             /* leaf resident time in the old leaf class */
-    s_output_field[24],         /* scalar output fields per species (<24) */
-    dummy1,                 /* tmax input, SParker May2020 */
-    dummy2;                 /* g1 input, SParker May2020 */
-
+    s_output_field[24];         /* scalar output fields per species (<24) */
+    
 #ifdef DCELL
     int *s_DCELL;	/* number of seeds from the species in each dcell */
     int *s_Seed;	/* presence/absence of seeds at each site; if def SEEDTRADEOFF, the number of seeds */
@@ -454,13 +452,11 @@ void Species::Init(int nesp,fstream& is) {
     /*** Read parameters ***/
     
     //new input file -- in v230
-
-    is  >> s_name >> s_Nmass >> s_LMA >> s_wsg >> s_dmax >> s_hmax >> s_ah >> dummy1 >> s_seedmass >> regionalfreq >> s_Pmass >> dummy2;
-    
+    is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2;
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
-    
+
     s_seedmass *= 0.4;
     s_iseedmass=1.0/s_seedmass;
     s_ds=40.0;
@@ -512,6 +508,8 @@ void Species::Init(int nesp,fstream& is) {
     
     s_Rdark=s_LMA*(8.5341-130.6*s_Nmass-567.0*s_Pmass-0.0137*s_LMA+11.1*s_Vcmaxm+187600.0*s_Nmass*s_Pmass)*0.001;
     
+    if(s_wsg > 0.4)s_Rdark *= 0.5;
+
     //s_Rdark corresponds to leaf maintenance respiration. From Table 6 in Atkin et al 2015 New phytologist v.2.0 */
     
     //s_Rdark=(82.36*(s_LMA*1e-3)-0.1561)*(s_LMA*1e-3);                 /* from Domingues et al 2007 */
@@ -1209,7 +1207,7 @@ void Tree::Growth() {
 	    }
 	    // The code above computes the proportion of leaf area in this level.
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
-            t_Rday = 0.;
+            t_Rday+=tempRday*effLA*0.4;
 	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
 	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
 	    // The calculations of GPP and Rday may be problematic. They output quantities in
@@ -1844,6 +1842,7 @@ void Initialise() {
         In >> Cair; In.getline(buffer,128,'\n');
         iCair = 1.0/Cair;
         if (_NDD) {
+            cout << "argh! it's in the conditional!" << endl;
             In >> R; In.getline(buffer,128,'\n');
             In >> deltaR; In.getline(buffer,128,'\n');
             In >> deltaD; In.getline(buffer,128,'\n');
@@ -1901,7 +1900,6 @@ void Initialise() {
     
     /*** Initialization of species ***/
     /*********************************/
-
     //In.getline(buffer,128,'\n');
     //In.getline(buffer,128,'\n');
     //In.getline(buffer,128,'\n');
@@ -1919,14 +1917,14 @@ void Initialise() {
     }
 
     
-cout << S[2].s_name << S[2].s_wsg << endl;
     /*** Initialization of environmental variables ***/
     /*************************************************/
     
     In.getline(buffer,128,'\n');
     In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');  
-      
+    In.getline(buffer,128,'\n');
+
+
     if(NULL==(Temperature=new float[iterperyear])) {                                // rk, the current structure of code suppose that environment is periodic (a period = a year), if one want to make climate vary, with interannual variation and climate change along the simulation, one just need to provide the full climate input of the whole simulation (ie number of columns=iter and not iterperyear) and change iterperyear by nbiter here.
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Temperature" << endl;

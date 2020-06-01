@@ -562,11 +562,12 @@ void Species::Init(int nesp,fstream& is) {
 /* in the new approach with a mean field seed flux (DCELL), the function FillSeed has a new
  role: it fills the vector s_DCELL that stores the number of produced seeds per timestep and per dcell */
 
+if(!t_s->s_liana){
 void Species::FillSeed(int dcol, int drow, int nbs) {
     
     s_DCELL[dcol+linear_nb_dcells*drow]+=nbs;
+	}
 }
-
 #else
 
 void Species::FillSeed(int col, int row) {
@@ -607,6 +608,7 @@ Nearest neighboring stripes are shared. Rque, this version is not valid ifdef SE
 /* in the new approach with a mean field seed flux (DCELL), the function UpdateSeed
  has a new role: it uses the vector s_DCELL to fill the s_Seed local seed bank */
 
+if(!t_s->s_liana){
 void Species::UpdateSeed() {
     int site;
     for(site=0;site<sites;site++) s_Seed[site]=0;
@@ -663,6 +665,7 @@ void Species::UpdateSeed() {
         }
     }
 }
+}
 #endif
 
 #ifdef MPI
@@ -670,6 +673,7 @@ void Species::UpdateSeed() {
 /*########################################
  ###  Calculation of shared fields s_Gc ###
  ########################################*/
+if(!t_s->s_liana){
 void Species::AddSeed() {
     /* Stripes shared by several processors are redefined */
     for(int site=0;site<sites;site++) {
@@ -684,6 +688,7 @@ void Species::AddSeed() {
                 if(s_Gc[3][site]) s_Seed[site] = min(s_Seed[site],s_Gc[3][site]);
         }
     }
+}
 }
 #endif
 
@@ -921,7 +926,7 @@ public:
  ####  called by BirthInit and UpdateTree   ####
  ##############################################*/
 
-
+if(!t_s->s_liana){
 void Tree::Birth(Species *S, int nume, int site0) {
     
     t_site = site0;
@@ -958,7 +963,7 @@ void Tree::Birth(Species *S, int nume, int site0) {
     
     /* setting diagnostic variables */
 }
-
+}
 
 /*##############################################
  ####   Tree Initialization from Data       ####
@@ -1146,6 +1151,7 @@ void Tree::Fluxh(int h) {
  ####         called by UpdateTree        ####
  #############################################*/
 
+if(!t_s->s_liana){
 void Tree::Growth() {
     
   float layer_prop; //proportion of leaves in a given layer.
@@ -1275,6 +1281,7 @@ void Tree::Growth() {
         if (t_site==120090) OutputTreeStandard(output[15]);
         if (t_site==150667) OutputTreeStandard(output[16]);
     }
+}
 }
 
 /*####################################################

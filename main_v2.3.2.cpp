@@ -2546,6 +2546,7 @@ void UpdateField() {
      At least 99 % of the seeds should be dispersed within the stripe or on the n.n. stripe.
      Hence rows > 4.7*max(dist_moy_dissemination),for an exponential dispersal kernel.*/
     
+if(!t_s->s_liana){
 #ifdef DCELL
     if(iter%iterperyear == 0){
         for(spp=1;spp<=numesp;spp++) {                              /* External seed rain: constant flux from the metacommunity */
@@ -2598,7 +2599,7 @@ void UpdateField() {
         }
     }
 #endif
-
+}
 #ifdef MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -2647,7 +2648,8 @@ void UpdateField() {
  ##############################*/
 
 void UpdateTree() {
-    
+if(!t_s->s_liana){    
+
     int site,spp;
     float flux;
     
@@ -2802,7 +2804,7 @@ void UpdateTree() {
 #endif
     
 }
-
+}
 
 /******************************
  *** Treefall gap formation ***
@@ -2810,6 +2812,7 @@ void UpdateTree() {
 
 
 void UpdateTreefall(){
+if(!t_s->s_liana){
     int site;
     
     for(site=0;site<sites;site++){
@@ -2840,7 +2843,7 @@ void UpdateTreefall(){
 #endif
         }
 }
-
+}
 
 
 /*###############################################

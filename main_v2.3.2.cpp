@@ -570,6 +570,7 @@ void Species::FillSeed(int dcol, int drow, int nbs) {
 }
 #else
 
+if(!t_s->s_liana){
 void Species::FillSeed(int col, int row) {
     int site;
     if(col < cols) {
@@ -582,7 +583,7 @@ void Species::FillSeed(int col, int row) {
                 if(s_Seed[site]!=1) s_Seed[site]=1;     /* If s_Seed[site] = 0, site is not occupied, if s_Seed[site] > 1, s_Seed[site] is the age of the youngest seed  */
             }
         }
-        
+   }     
 #ifdef MPI                                       /* on each processor a stripe of forest is simulated.
 Nearest neighboring stripes are shared. Rque, this version is not valid ifdef SEEDTRADEOFF */
         else if((row+rows >=0) && (row < 0)) {
@@ -641,7 +642,8 @@ void Species::UpdateSeed() {
 void Species::UpdateSeed() {
     
     /* should probably be modified, since as implemented now seeds are erased every timestep (i.e. month in default mode)--> to be discussed */
-    
+    if(!t_s->s_liana){
+
     if(_SEEDTRADEOFF){
         for(int site=0;site<sites;site++){
 # ifdef MPI
@@ -664,6 +666,7 @@ void Species::UpdateSeed() {
             else if(s_Seed[site]!=0) s_Seed[site]++;            // v.2.3: bug fix: before, procedure was not restricted to existing seeds, therefore creation of seeds
         }
     }
+}
 }
 }
 #endif

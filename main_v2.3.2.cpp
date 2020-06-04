@@ -562,15 +562,12 @@ void Species::Init(int nesp,fstream& is) {
 /* in the new approach with a mean field seed flux (DCELL), the function FillSeed has a new
  role: it fills the vector s_DCELL that stores the number of produced seeds per timestep and per dcell */
 
-if(!t_s->s_liana){
 void Species::FillSeed(int dcol, int drow, int nbs) {
     
     s_DCELL[dcol+linear_nb_dcells*drow]+=nbs;
 	}
-}
 #else
 
-if(!t_s->s_liana){
 void Species::FillSeed(int col, int row) {
     int site;
     if(col < cols) {
@@ -582,8 +579,7 @@ void Species::FillSeed(int col, int row) {
             else{
                 if(s_Seed[site]!=1) s_Seed[site]=1;     /* If s_Seed[site] = 0, site is not occupied, if s_Seed[site] > 1, s_Seed[site] is the age of the youngest seed  */
             }
-        }
-   }     
+        }     
 #ifdef MPI                                       /* on each processor a stripe of forest is simulated.
 Nearest neighboring stripes are shared. Rque, this version is not valid ifdef SEEDTRADEOFF */
         else if((row+rows >=0) && (row < 0)) {
@@ -609,7 +605,6 @@ Nearest neighboring stripes are shared. Rque, this version is not valid ifdef SE
 /* in the new approach with a mean field seed flux (DCELL), the function UpdateSeed
  has a new role: it uses the vector s_DCELL to fill the s_Seed local seed bank */
 
-if(!t_s->s_liana){
 void Species::UpdateSeed() {
     int site;
     for(site=0;site<sites;site++) s_Seed[site]=0;
@@ -668,7 +663,6 @@ void Species::UpdateSeed() {
     }
 }
 }
-}
 #endif
 
 #ifdef MPI
@@ -676,7 +670,6 @@ void Species::UpdateSeed() {
 /*########################################
  ###  Calculation of shared fields s_Gc ###
  ########################################*/
-if(!t_s->s_liana){
 void Species::AddSeed() {
     /* Stripes shared by several processors are redefined */
     for(int site=0;site<sites;site++) {
@@ -691,7 +684,6 @@ void Species::AddSeed() {
                 if(s_Gc[3][site]) s_Seed[site] = min(s_Seed[site],s_Gc[3][site]);
         }
     }
-}
 }
 #endif
 
@@ -929,7 +921,6 @@ public:
  ####  called by BirthInit and UpdateTree   ####
  ##############################################*/
 
-if(!t_s->s_liana){
 void Tree::Birth(Species *S, int nume, int site0) {
     
     t_site = site0;
@@ -965,7 +956,6 @@ void Tree::Birth(Species *S, int nume, int site0) {
     nblivetrees++;
     
     /* setting diagnostic variables */
-}
 }
 
 /*##############################################
@@ -1154,7 +1144,6 @@ void Tree::Fluxh(int h) {
  ####         called by UpdateTree        ####
  #############################################*/
 
-if(!t_s->s_liana){
 void Tree::Growth() {
     
   float layer_prop; //proportion of leaves in a given layer.
@@ -1285,7 +1274,6 @@ void Tree::Growth() {
         if (t_site==150667) OutputTreeStandard(output[16]);
     }
 }
-}
 
 /*####################################################
  ####       Leaf dynamics and C allocation        ####
@@ -1396,7 +1384,7 @@ void Tree::DisperseSeed(){
   // DM: Note that t_PPFD varies throughout the plant canopy. It is calculated in sequence
   // in a loop. The last value is the lowest layer.
 
-    if((t_dbh>=t_dbhmature)&&(t_PPFD>2.0*(t_s->s_LCP))) {
+    if((t_dbh>=t_dbhmature)&&(t_PPFD>2.0*(t_s->s_LCP))&&(!t_s->s_liana)) {
         float rho,theta_angle;
         int nbs=0;
         if(_SEEDTRADEOFF){
@@ -2549,7 +2537,6 @@ void UpdateField() {
      At least 99 % of the seeds should be dispersed within the stripe or on the n.n. stripe.
      Hence rows > 4.7*max(dist_moy_dissemination),for an exponential dispersal kernel.*/
     
-if(!t_s->s_liana){
 #ifdef DCELL
     if(iter%iterperyear == 0){
         for(spp=1;spp<=numesp;spp++) {                              /* External seed rain: constant flux from the metacommunity */
@@ -2650,8 +2637,7 @@ if(!t_s->s_liana){
  ####	and death of trees  ####
  ##############################*/
 
-void UpdateTree() {
-if(!t_s->s_liana){    
+void UpdateTree() {    
 
     int site,spp;
     float flux;
@@ -2807,7 +2793,6 @@ if(!t_s->s_liana){
 #endif
     
 }
-}
 
 /******************************
  *** Treefall gap formation ***
@@ -2815,7 +2800,6 @@ if(!t_s->s_liana){
 
 
 void UpdateTreefall(){
-if(!t_s->s_liana){
     int site;
     
     for(site=0;site<sites;site++){
@@ -2845,7 +2829,6 @@ if(!t_s->s_liana){
             if(mpi_rank<mpi_size-1) T[site].t_hurt = max(T[site].t_hurt,Thurt[2][site]);
 #endif
         }
-}
 }
 
 

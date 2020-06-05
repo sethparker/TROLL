@@ -470,7 +470,8 @@ void Species::Init(int nesp,fstream& is) {
     
     // uniform composition of the seed rain -- in v230
     regionalfreq=1.0/float(numesp);
-    
+    if(s_liana)regionalfreq=0;
+
     if(_SEEDTRADEOFF){
         s_nbext = (int(regionalfreq*Cseedrain*s_iseedmass)+1);
     }

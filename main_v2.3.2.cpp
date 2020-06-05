@@ -102,7 +102,7 @@ _NDD=1,                 /* if defined, negative density dependant processes affe
 _OUTPUT_reduced=1,      /* reduced set of ouput files */
 _OUTPUT_last100=0,      /* output that tracks the last 100 years of the simulation for the whole grid (2D) */
 _OUTPUT_fullLAI=0,       /* output of full final voxel field */
-_FromData=0;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
+_FromData=1;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
 
 
 /********************************/
@@ -1383,6 +1383,7 @@ void Tree::DisperseSeed(){
 
   // DM: Note that t_PPFD varies throughout the plant canopy. It is calculated in sequence
   // in a loop. The last value is the lowest layer.
+
 
     if((t_dbh>=t_dbhmature)&&(t_PPFD>2.0*(t_s->s_LCP))) {
         float rho,theta_angle;

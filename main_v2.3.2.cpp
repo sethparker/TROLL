@@ -2314,7 +2314,7 @@ void AllocMem() {
     HEIGHT = 0;
     
     for(spp=1;spp<=numesp;spp++) {
-        HEIGHT = max(HEIGHT,int(S[spp].s_hmax*S[spp].s_dmax*1.5/(S[spp].s_dmax*1.5+S[spp].s_ah)));  //   in number of vertical cells
+      if(!S[spp].s_liana)HEIGHT = max(HEIGHT,int(S[spp].s_hmax*S[spp].s_dmax*1.5/(S[spp].s_dmax*1.5+S[spp].s_ah)));  //   in number of vertical cells
     }
     
     cout << "HEIGHT " << HEIGHT << endl;
@@ -2323,10 +2323,12 @@ void AllocMem() {
     d = 0.0;
     r = 0.0;
     for(spp=1;spp<=numesp;spp++){
+      if(!S[spp].s_liana){
         d = maxf(d,S[spp].s_dmax*1.5);
         /* in number of horizontal cells */
         r = maxf(r,ra0+S[spp].s_dmax*1.5*ra1);
         /* in number of horizontal cells */
+      }
     }
     
     RMAX = int(r+p_nonvert*NH*LV*HEIGHT);

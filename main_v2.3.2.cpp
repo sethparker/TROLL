@@ -457,7 +457,7 @@ void Species::Init(int nesp,fstream& is) {
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
-    cout << s_liana << endl;
+
     s_seedmass *= 0.4;
     s_iseedmass=1.0/s_seedmass;
     s_ds=40.0;

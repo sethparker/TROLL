@@ -9,7 +9,7 @@
 1	/* NV # vertical nb of cells (nb per m) */
 1	/* NH # horizontal nb of cells (nb per m) */
 4	/* nbout # Number of outputs */ 
-38	/* numesp # Number of species */
+39	/* numesp # Number of species */
 0.05	/* p # light incidence param (diff through turbid medium) */
 0.030	0.108	0.208	0.304	0.473	0.617	0.723	0.823	0.925	0.965	0.995	0.988	1.000	0.942	0.854	0.766	0.646	0.493	0.360	0.277	0.183	0.102	0.058	0.022   /* normalized daily light course (from 7am to 7pm, with a half-hour time-step */
 0.012	0.018	0.042	0.087	0.175	0.304	0.445	0.569	0.672	0.767	0.856	0.915	0.961	0.986	1.000	0.985	0.952	0.908	0.863	0.820	0.767	0.699	0.611	0.498   /* normalized daily VPD course (from 7am to 7pm, with a half-hour time-step */
@@ -78,6 +78,7 @@ Tabebuia_ochracea	0.0256	131.973	0.804	0.5	17.92	0.279	1	0.0114	40	0.00120	3.77	
 Tabebuia_rosea	0.0151	137.58	0.532	0.5	24.44	0.892	1	0.0245	40	0.00095	1.7225	0
 Thevetia_ovata	0.0162	93.119	0.537	0.5	24.44	0.892	1	0.0932	40	0.00094	3.77	0
 Trichilia_glabra	0.0276	62.415	0.579	0.5	24.44	0.892	1	0.0852	40	0.00164	3.77	0
+Liana_placeholder	0.0276	62.415	0.579	0.5	24.44	0.892	0	0.0852	40	0.00164	3.77	1
 
 ###	Climate (input environment)
 25.47447	26.02723	26.87827	27.58436	26.95839	25.63987	25.61669	25.26543	24.99990	24.10808	24.71997	24.67287	/*Temperature in degree C*/

@@ -83,7 +83,7 @@ void sgenrand2i(unsigned long);
 
 fstream out,out2;
 
-fstream output[38];
+fstream output[48];
 
 /****************/
 /* User control */
@@ -310,6 +310,7 @@ FreeMem(void);
 
 void
 OutputSnapshot(fstream& output),
+OutputSnapshotLiana(fstream& output),
 OutputSnapshotDetail(fstream& output),
 OutputSpeciesParameters(fstream& output),
 OutputFullLAI(fstream& output_CHM, fstream& output_LAD);
@@ -1798,6 +1799,7 @@ int main(int argc,char *argv[]) {
         
         if(iter == nbiter-2){
             OutputSnapshot(output[10]);                         // Final Pattern
+            OutputSnapshotLiana(output[41]);                         // Final Pattern
             
             
             if(!_OUTPUT_reduced){
@@ -2213,6 +2215,8 @@ void Initialise() {
             output[0].open(nnn, ios::out);
             sprintf(nnn,"%s_%i_final_pattern.txt",buf, easympi_rank);
             output[10].open(nnn, ios::out);
+            sprintf(nnn,"%s_%i_final_pattern_liana.txt",buf, easympi_rank);
+            output[41].open(nnn, ios::out);
             sprintf(nnn,"%s_%i_vertd.txt",buf, easympi_rank);
             output[32].open(nnn,ios::out);
             sprintf(nnn,"%s_%i_litterfall.txt",buf, easympi_rank);
@@ -3181,6 +3185,17 @@ void OutputSnapshot(fstream& output){
     for(int row=0;row<rows;row++)
         for(int col=0;col<cols;col++){
             output << col << "\t" << row << "\t" << T[col + cols*row].t_age << "\t" << T[col + cols*row].t_dbh << "\t" << T[col + cols*row].t_Tree_Height << "\t" << T[col + cols*row].t_Crown_Radius << "\t" << T[col + cols*row].t_Crown_Depth << "\t" << T[col + cols*row].t_sp_lab << "\t" << T[col + cols*row].t_leafarea << "\t" << T[col + cols*row].t_ddbh << "\t" << T[col + cols*row].t_GPP   << endl;
+        }
+}
+
+/* This provides a snapshot of the lianas whenever called. Per default, this function is used to create the final pattern. I did not want to add it to OutputSnapshot in order to maximize back-compatibility */
+
+void OutputSnapshotLiana(fstream& output){
+    for(int row=0;row<rows;row++)
+        for(int col=0;col<cols;col++){
+            output << col << "\t" << row << "\t" << L[col + cols*row].l_age << "\t" << L[col + cols*row].l_sp_lab << "\t" << L[col + cols*row].l_nhost;
+	    for(int host=0;host<L[col+cols*row].l_nhost;host++)output << "\t" << L[col+cols*row].l_hsite[host];
+	    output << endl;
         }
 }
 

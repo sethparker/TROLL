@@ -637,7 +637,6 @@ void Species::UpdateSeed() {
 void Species::UpdateSeed() {
     
     /* should probably be modified, since as implemented now seeds are erased every timestep (i.e. month in default mode)--> to be discussed */
-    if(!t_s->s_liana){
 
     if(_SEEDTRADEOFF){
         for(int site=0;site<sites;site++){

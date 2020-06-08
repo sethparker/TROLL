@@ -662,7 +662,6 @@ void Species::UpdateSeed() {
         }
     }
 }
-}
 #endif
 
 #ifdef MPI
@@ -2589,7 +2588,7 @@ void UpdateField() {
         }
     }
 #endif
-}
+
 #ifdef MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif

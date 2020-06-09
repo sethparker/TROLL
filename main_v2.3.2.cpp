@@ -938,6 +938,21 @@ public:
 
   int l_nhost; /* current number of host trees for this liana */
   int *l_hsite; /* site index of host trees */
+  float *l_hRPos; /* Length of 2D radius vector in X-Y space. Points from host tree center to 
+		     the center of the liana canopy. Measured in units of host tree crown radius, 
+		     and thus ranges from 0 to 1 */
+  float *l_hAngPos; /* Angle of 2D radius vector in X-Y space. The vector points from host tree 
+		       center to the center of the liana canopy. Measured in degrees, so it ranges 
+		       from 0 to 360 */
+  float *l_hZPos; /* Vertical location of the top of the liana canopy. Measured in units of 
+		     host tree crown depth. Ranges from 0 to 1. A value of 1 means that the top of 
+		     the liana canopy is at the top of the tree canopy; a value of 0 means that 
+		     the top of the liana canopy is at the bottom of the tree canopy (and thus 
+		     the liana canopy would be non-existent) */
+  float *l_hCrRad; /* Crown radius of the liana, measured in units of the host tree crown radius.
+		      Ranges from 0 to 1. */
+  float *l_hCrDep; /* Crown depth of the liana, measured in units of host tree crown depth. Can
+		      range between 0 to l_hZPos. */
 
   Liana(){
     l_sp_lab = 0;
@@ -949,7 +964,8 @@ public:
   virtual ~Liana(){
   };
 
-  void BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite); /* liana initialisation from field data */
+  void BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
+		     float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep); /* liana initialisation from field data */
 
 };
 
@@ -1058,24 +1074,30 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
  ####   Liana Initialization from Data       ####
  ##############################################*/
 
-void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite) {
-    
-    // entirely modelled following Liana::Birth
-    // main differences: dbh is given, related parameters are not set to fixed initial values, but derived through allometries
-    // for comments regarding allometries and l_leafarea cf. Liana::Growth
-    // for comments regarding everything else cf. Liana::Birth
+void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
+			  float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep) {
     
     l_site = site0;
     l_sp_lab = nume;
     l_s = S+l_sp_lab;
-    l_age = 1;          //value not correct, but generally not problematic, used mainly as diagnostic variable and as indicator of whether tree is alive or not (death itself is independent of age), BUT: use as diagnostic variable cannot be ensured anymore and be careful if conditioning on t_age (e.g. for maturation)
-    l_from_Data = 1;    //indicates that tree stems from data (and therefore t_age could not be used, etc.)
+    l_age = 1;          //value not correct, but generally not problematic, used mainly as diagnostic variable and as indicator of whether liana is alive or not (death itself is independent of age), BUT: use as diagnostic variable cannot be ensured anymore and be careful if conditioning on l_age (e.g. for maturation)
+    l_from_Data = 1;    //indicates that liana stems from data (and therefore l_age could not be used, etc.)
     l_nhost = nhost;
 
     if (NULL==(l_hsite=new int[nhost])) cerr<<"!!! Mem_Alloc\n";
+    if (NULL==(l_hRPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
+    if (NULL==(l_hAngPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
+    if (NULL==(l_hZPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
+    if (NULL==(l_hCrRad=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
+    if (NULL==(l_hCrDep=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
 
     for(int ihost=0; ihost < nhost; ihost++){
       l_hsite[ihost] = hsite[ihost];
+      l_hRPos[ihost] = hRPos[ihost];
+      l_hAngPos[ihost] = hAngPos[ihost];
+      l_hZPos[ihost] = hZPos[ihost];
+      l_hCrRad[ihost] = hCrRad[ihost];
+      l_hCrDep[ihost] = hCrDep[ihost];
     }
 
     (l_s->s_nbind)++;
@@ -2342,6 +2364,8 @@ void InitialiseFromData(){
     float height_max=0;                                                             // diagnostics
     int nhosts;
     int host_row, host_col, host_site[sites];
+    float host_RPos[sites], host_AngPos[sites], host_ZPos[sites];
+    float host_CrDep[sites], host_CrRad[sites];
     
     nblivetrees=0;
     nblivelianas=0;
@@ -2363,6 +2387,8 @@ void InitialiseFromData(){
       for(int ihost = 0; ihost < nhosts; ihost++){
 	In >> host_col >> host_row;
 	host_site[ihost] = host_col + host_row * cols;
+	In >> host_RPos[ihost] >> host_AngPos[ihost] >> host_CrRad[ihost];
+	In >> host_ZPos[ihost] >> host_CrDep[ihost];
       }
 
         In.getline(buffer, 256, '\n'); // reads additional information into buffer
@@ -2384,7 +2410,7 @@ void InitialiseFromData(){
             
             // immediate liana birth
             
-            if(L[col_int+row_int*cols].l_age==0 && S[sp_lab_data].s_liana) L[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site);
+            if(L[col_int+row_int*cols].l_age==0 && S[sp_lab_data].s_liana) L[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,host_RPos,host_AngPos,host_ZPos,host_CrRad,host_CrDep);
             
             // first attempt: simple, only trees with coordinates, only known species
             // other possibilities: not spatially explicit and/or assign species randomnly to trees whose species are not known
@@ -3194,7 +3220,11 @@ void OutputSnapshotLiana(fstream& output){
     for(int row=0;row<rows;row++)
         for(int col=0;col<cols;col++){
             output << col << "\t" << row << "\t" << L[col + cols*row].l_age << "\t" << L[col + cols*row].l_sp_lab << "\t" << L[col + cols*row].l_nhost;
-	    for(int host=0;host<L[col+cols*row].l_nhost;host++)output << "\t" << L[col+cols*row].l_hsite[host];
+	    for(int host=0;host<L[col+cols*row].l_nhost;host++){
+	      output << "\t" << L[col+cols*row].l_hsite[host];
+	      output << "\t" << L[col+cols*row].l_hRPos[host] << "\t" << L[col+cols*row].l_hAngPos[host] << "\t" << L[col+cols*row].l_hZPos[host];
+	      output << "\t" << L[col+cols*row].l_hCrRad[host] << "\t" << L[col+cols*row].l_hCrDep[host];
+	    }
 	    output << endl;
         }
 }

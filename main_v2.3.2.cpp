@@ -954,6 +954,8 @@ public:
   float *l_hCrDep; /* Crown depth of the liana, measured in units of host tree crown depth. Can
 		      range between 0 to l_hZPos. */
 
+  float *l_dbh;
+
   Liana(){
     l_sp_lab = 0;
     l_age = 0;
@@ -965,7 +967,8 @@ public:
   };
 
   void BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
-		     float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep); /* liana initialisation from field data */
+		     float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
+		     float *ldbh); /* liana initialisation from field data */
 
 };
 
@@ -1075,7 +1078,11 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
  ##############################################*/
 
 void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
-			  float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep) {
+			  float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
+			  float *ldbh) {
+    
+  // Modelled following Tree::Birth. However, various aspects particular to lianas
+  // have been modified or added.
     
     l_site = site0;
     l_sp_lab = nume;
@@ -1090,14 +1097,27 @@ void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, i
     if (NULL==(l_hZPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
     if (NULL==(l_hCrRad=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
     if (NULL==(l_hCrDep=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
+    if (NULL==(l_dbh=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
 
     for(int ihost=0; ihost < nhost; ihost++){
+      /* Host tree */
       l_hsite[ihost] = hsite[ihost];
+
+      /* Position of liana canopy */
       l_hRPos[ihost] = hRPos[ihost];
       l_hAngPos[ihost] = hAngPos[ihost];
       l_hZPos[ihost] = hZPos[ihost];
+
+      /* Size of liana canopy */
       l_hCrRad[ihost] = hCrRad[ihost];
       l_hCrDep[ihost] = hCrDep[ihost];
+
+      /* Liana woody biomass */
+      if((l_s->s_dmax)*1.5 > ldbh[ihost]) l_dbh[ihost] = ldbh[ihost]; // force dbh to be within limits of TROLL specifications
+      else{
+	l_dbh[ihost] = (l_s->s_dmax);
+        cout << "Warning: DBH_measured > 1.5*DBH_max for species. DBH set to DBH_max for species \n";
+      }
     }
 
     (l_s->s_nbind)++;
@@ -2378,6 +2398,7 @@ void InitialiseFromData(){
     
     cout << "Header line skipped \n";
     
+    // For lianas, dbh_measured is here a dummy variable.
     while ((In >> col_data >> row_data >> dbh_measured  >> sp_lab_data) && data_read < sites)       // restricting to data sets with a maximum number of values corresponding to no. of sites
     {
 
@@ -2389,6 +2410,8 @@ void InitialiseFromData(){
 	host_site[ihost] = host_col + host_row * cols;
 	In >> host_RPos[ihost] >> host_AngPos[ihost] >> host_CrRad[ihost];
 	In >> host_ZPos[ihost] >> host_CrDep[ihost];
+	In >> host_ldbh[ihost];
+	host_ldbh[ihost] *= 0.001; // convert from m to mm
       }
 
         In.getline(buffer, 256, '\n'); // reads additional information into buffer
@@ -2402,16 +2425,19 @@ void InitialiseFromData(){
             col_int = (int) (col_data+0.5f);            //rounding, works since negatives have been eliminated before
             row_int = (int) (row_data+0.5f);
             
-            // immediate tree birth
+	    if(S[sp_lab_data].s_liana){
+
+	      // immediate liana birth
+	      if(L[col_int+row_int*cols].l_age==0) L[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,host_RPos,host_AngPos,host_ZPos,host_CrRad,host_CrDep,host_ldbh);
             
-            if(T[col_int+row_int*cols].t_age==0 && (!S[sp_lab_data].s_liana)) T[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured);
+	    }else{
+
+	      // immediate tree birth
+	      if(T[col_int+row_int*cols].t_age==0) T[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured);
             
-            if(height_max<T[col_int+row_int*cols].t_Tree_Height) height_max = T[col_int+row_int*cols].t_Tree_Height;
-            
-            // immediate liana birth
-            
-            if(L[col_int+row_int*cols].l_age==0 && S[sp_lab_data].s_liana) L[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,host_RPos,host_AngPos,host_ZPos,host_CrRad,host_CrDep);
-            
+	      if(height_max<T[col_int+row_int*cols].t_Tree_Height) height_max = T[col_int+row_int*cols].t_Tree_Height;
+	    }
+
             // first attempt: simple, only trees with coordinates, only known species
             // other possibilities: not spatially explicit and/or assign species randomnly to trees whose species are not known
             

@@ -938,9 +938,6 @@ public:
 
   int l_nhost; /* current number of host trees for this liana */
   int *l_hsite; /* site index of host trees */
-  float *l_hRPos; /* Length of 2D radius vector in X-Y space. Points from host tree center to 
-		     the center of the liana canopy. Measured in units of host tree crown radius, 
-		     and thus ranges from 0 to 1 */
   float *l_hAngPos; /* Angle of 2D radius vector in X-Y space. The vector points from host tree 
 		       center to the center of the liana canopy. Measured in degrees, so it ranges 
 		       from 0 to 360 */
@@ -967,7 +964,7 @@ public:
   };
 
   void BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
-		     float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
+		     float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
 		     float *ldbh); /* liana initialisation from field data */
 
 };
@@ -1078,7 +1075,7 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
  ##############################################*/
 
 void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
-			  float *hRPos, float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
+			  float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
 			  float *ldbh) {
     
   // Modelled following Tree::Birth. However, various aspects particular to lianas
@@ -1092,7 +1089,6 @@ void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, i
     l_nhost = nhost;
 
     if (NULL==(l_hsite=new int[nhost])) cerr<<"!!! Mem_Alloc\n";
-    if (NULL==(l_hRPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
     if (NULL==(l_hAngPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
     if (NULL==(l_hZPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
     if (NULL==(l_hCrRad=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
@@ -1104,7 +1100,6 @@ void Liana::BirthFromData(Species *S, int nume, int site0, float dbh_measured, i
       l_hsite[ihost] = hsite[ihost];
 
       /* Position of liana canopy */
-      l_hRPos[ihost] = hRPos[ihost];
       l_hAngPos[ihost] = hAngPos[ihost];
       l_hZPos[ihost] = hZPos[ihost];
 
@@ -2384,7 +2379,7 @@ void InitialiseFromData(){
     float height_max=0;                                                             // diagnostics
     int nhosts;
     int host_row, host_col, host_site[sites];
-    float host_RPos[sites], host_AngPos[sites], host_ZPos[sites];
+    float host_AngPos[sites], host_ZPos[sites];
     float host_CrDep[sites], host_CrRad[sites];
     
     nblivetrees=0;
@@ -2408,7 +2403,7 @@ void InitialiseFromData(){
       for(int ihost = 0; ihost < nhosts; ihost++){
 	In >> host_col >> host_row;
 	host_site[ihost] = host_col + host_row * cols;
-	In >> host_RPos[ihost] >> host_AngPos[ihost] >> host_CrRad[ihost];
+	In >> host_AngPos[ihost] >> host_CrRad[ihost];
 	In >> host_ZPos[ihost] >> host_CrDep[ihost];
 	In >> host_ldbh[ihost];
 	host_ldbh[ihost] *= 0.001; // convert from m to mm
@@ -2428,7 +2423,7 @@ void InitialiseFromData(){
 	    if(S[sp_lab_data].s_liana){
 
 	      // immediate liana birth
-	      if(L[col_int+row_int*cols].l_age==0) L[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,host_RPos,host_AngPos,host_ZPos,host_CrRad,host_CrDep,host_ldbh);
+	      if(L[col_int+row_int*cols].l_age==0) L[col_int+row_int*cols].BirthFromData(S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,host_AngPos,host_ZPos,host_CrRad,host_CrDep,host_ldbh);
             
 	    }else{
 
@@ -3248,7 +3243,7 @@ void OutputSnapshotLiana(fstream& output){
             output << col << "\t" << row << "\t" << L[col + cols*row].l_age << "\t" << L[col + cols*row].l_sp_lab << "\t" << L[col + cols*row].l_nhost;
 	    for(int host=0;host<L[col+cols*row].l_nhost;host++){
 	      output << "\t" << L[col+cols*row].l_hsite[host];
-	      output << "\t" << L[col+cols*row].l_hRPos[host] << "\t" << L[col+cols*row].l_hAngPos[host] << "\t" << L[col+cols*row].l_hZPos[host];
+	      output << "\t" << "\t" << L[col+cols*row].l_hAngPos[host] << "\t" << L[col+cols*row].l_hZPos[host];
 	      output << "\t" << L[col+cols*row].l_hCrRad[host] << "\t" << L[col+cols*row].l_hCrDep[host];
 	    }
 	    output << endl;

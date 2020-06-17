@@ -1112,10 +1112,24 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	l_stem[ihost].BirthFromData(S,nume,hsite[ihost],ldbh[ihost]);
 
 	/* Overwrite with information from forest file */
-	l_stem[ihost].t_Crown_Radius = CrRad[ihost];
-	l_stem[ihost].t_Crown_Depth = CrDep[ihost];
+	l_stem[ihost].t_Crown_Radius = CrRad[ihost] * l_host[ihost]->t_Crown_Radius;
+	l_stem[ihost].t_Crown_Depth = CrDep[ihost] * l_host[ihost]->t_Crown_Depth;
 	l_stem[ihost].t_dbh = ldbh[ihost];
-	
+
+	/* Calculate area of overlap */
+	float r1 = l_host[ihost]->t_Crown_Radius;
+	float r2 = l_stem[ihost].t_Crown_Radius;
+	float d1 = (2.0*r1*r1 - r2*r2)/(2. * r1);
+	float d2 = r1 -d1;
+	float Aintersect = r1*r1*acos(d1/r1)-d1*sqrt(r1*r1-d1*d1)+
+	  r2*r2*acos(d2/r2)-d2*sqrt(r2*r2-d2*d2);
+
+	/* Set liana leaf area */
+	l_stem[ihost].t_leafarea = l_stem[ihost].t_dens * Aintersect * l_stem[ihost].t_Crown_Depth;
+	l_stem[ihost].t_youngLA = 0.25 * l_stem[ihost].t_leafarea;
+	l_stem[ihost].t_matureLA = 0.5 * l_stem[ihost].t_leafarea;
+	l_stem[ihost].t_oldLA = 0.25 * l_stem[ihost].t_leafarea;
+
       }
     }
 

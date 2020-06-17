@@ -1115,6 +1115,8 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	l_stem[ihost].t_Crown_Radius = CrRad[ihost] * l_host[ihost]->t_Crown_Radius;
 	l_stem[ihost].t_Crown_Depth = CrDep[ihost] * l_host[ihost]->t_Crown_Depth;
 	l_stem[ihost].t_dbh = ldbh[ihost];
+	l_stem[ihost].t_Tree_Height = l_host[ihost]->t_Tree_Height - (1.0 - l_ZPos[ihost]) *
+	  l_host[ihost]->t_Crown_Depth;
 
 	/* Calculate area of overlap */
 	float r1 = l_host[ihost]->t_Crown_Radius;
@@ -1129,6 +1131,20 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	l_stem[ihost].t_youngLA = 0.25 * l_stem[ihost].t_leafarea;
 	l_stem[ihost].t_matureLA = 0.5 * l_stem[ihost].t_leafarea;
 	l_stem[ihost].t_oldLA = 0.25 * l_stem[ihost].t_leafarea;
+
+	/* Identify which pixels are occupied by the liana */
+	int tree_center_x = l_host[ihost]->t_site/cols; 
+	int tree_center_y = l_host[ihost]->t_site%cols;
+	int liana_center_x = tree_center_x + (int) (l_host[ihost]->t_Crown_Radius*cos(PI*l_AngPos[ihost]/180.));
+	int liana_center_y = tree_center_y + (int) (l_host[ihost]->t_Crown_Radius*sin(PI*l_AngPos[ihost]/180.));
+	int liana_crown_r_cells = (int) (l_stem[ihost].t_Crown_Radius);
+        for(int col=max(0,col_trunc-crown_r);col<=min(cols-1,col_trunc+crown_r);col++) {
+            for(row=max(0,row_trunc-crown_r);row<=min(rows-1,row_trunc+crown_r);row++) {
+
+
+	cout << "tree_center_x: " << tree_center_x << " tree_center_y: " << tree_center_y << endl;
+	cout << "liana_center_x: " << liana_center_x << " liana_center_x: " << l_host[ihost]->t_Crown_Radius*cos(PI*l_AngPos[ihost]/180.) << endl;
+	cout << "liana_center_y: " << liana_center_y << " liana_center_y: " << l_host[ihost]->t_Crown_Radius*sin(PI*l_AngPos[ihost]/180.) << endl;
 
       }
     }

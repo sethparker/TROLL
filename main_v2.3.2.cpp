@@ -138,6 +138,8 @@ RMAX,               /* max crown radius */
 SBORD;              /* RMAX*cols */
 
 int CRMAX; /* Max crown radius using new allometry */
+int CDMAX; /* Max crown depth using new allometry */
+
 
 float NV,           /* nb cells per m (vertical) */
 NH,                 /* nb cells per m (horizontal) */
@@ -2543,6 +2545,8 @@ void AllocMem() {
       }
     }
     CRMAX  = int(0.80+10.47*d-3.33*d*d);
+    CDMAX  = int(-0.48+0.26*(HEIGHT+1)); 
+    cout << "CDMAX: " << CDMAX << endl;
     
     RMAX = int(r+p_nonvert*NH*LV*HEIGHT);
     //  RMAX = int(r);

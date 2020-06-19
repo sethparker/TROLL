@@ -137,6 +137,8 @@ dbhmaxincm,         /* max DBH times 100 (ie dbh in cm *100 = in meters) */
 RMAX,               /* max crown radius */
 SBORD;              /* RMAX*cols */
 
+int CRMAX; /* Max crown radius using new allometry */
+
 float NV,           /* nb cells per m (vertical) */
 NH,                 /* nb cells per m (horizontal) */
 LV,                 /* LV = 1.0/NV */
@@ -948,7 +950,7 @@ public:
 
   Tree *l_stem; /* contains properties of each aboveground stem */
 
-
+  int ***l_occupy; /* specifies whether host tree voxel is occupied by the liana */
 
   Liana(){
     l_sp_lab = 0;
@@ -1098,6 +1100,10 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
       // Tree structure to contain stem-specific information
       if (NULL==(l_stem=new Tree[nhost])) cerr<<"!!! Mem_Alloc\n";
 
+      // Specify which host tree canopy voxels are occupied by the liana stem. First, set up
+      // host index.
+      if (NULL==(l_occupy=new int**[nhost])) cerr<<"!!! Mem_Alloc\n";
+      
       // Loop over all stems
       for(int ihost=0; ihost < nhost; ihost++){
 
@@ -1132,19 +1138,42 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	l_stem[ihost].t_matureLA = 0.5 * l_stem[ihost].t_leafarea;
 	l_stem[ihost].t_oldLA = 0.25 * l_stem[ihost].t_leafarea;
 
+	/* Allocate occupancy indicator for this host */
+	if(NULL == (l_occupy[ihost] = new int*[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
+	for(int icr=0;icr<(2*CRMAX+1);icr++){
+	  if(NULL == (l_occupy[ihost][icr] = new int[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
+	  for(int jcr=0;jcr<(2*CRMAX+1);jcr++)l_occupy[ihost][icr][jcr]=0;
+	}
+
 	/* Identify which pixels are occupied by the liana */
 	int tree_center_x = l_host[ihost]->t_site/cols; 
 	int tree_center_y = l_host[ihost]->t_site%cols;
+	int tree_crown_r_cells = (int) (l_host[ihost]->t_Crown_Radius);
 	int liana_center_x = tree_center_x + (int) (l_host[ihost]->t_Crown_Radius*cos(PI*l_AngPos[ihost]/180.));
 	int liana_center_y = tree_center_y + (int) (l_host[ihost]->t_Crown_Radius*sin(PI*l_AngPos[ihost]/180.));
 	int liana_crown_r_cells = (int) (l_stem[ihost].t_Crown_Radius);
-        for(int col=max(0,col_trunc-crown_r);col<=min(cols-1,col_trunc+crown_r);col++) {
-            for(row=max(0,row_trunc-crown_r);row<=min(rows-1,row_trunc+crown_r);row++) {
+	cout << "Tx: " << tree_center_x << " Ty: " << tree_center_y << " TCR: " << l_host[ihost]->t_Crown_Radius << endl;
+	cout << "Lx: " << liana_center_x << " Ly: " << liana_center_y << endl;
+        for(int col=max(0,liana_center_y-liana_crown_r_cells);
+	    col<=min(cols-1,liana_center_y+liana_crown_r_cells);col++) {
+	  int diffy = col - liana_center_y;
+	  for(int row=max(0,liana_center_x-liana_crown_r_cells);
+	      row<=min(rows-1,liana_center_x+liana_crown_r_cells);row++) {
+	    int diffx = row - liana_center_x;
+	    if(diffx*diffx + diffy*diffy <= liana_crown_r_cells*liana_crown_r_cells){
+	      if((col-tree_center_y)*(col-tree_center_y)+(row-tree_center_x)*(row-tree_center_x) <= tree_crown_r_cells * tree_crown_r_cells){
+		l_occupy[ihost][diffy+CRMAX][diffx+CRMAX] = 1;
+	      }
+	    }
+	  }
+	}
 
+        for(int col=0;col<(2*CRMAX+1);col++){
+	  for(int row=0;row<(2*CRMAX+1);row++){
+	    if(l_occupy[ihost][col][row] > 0)cout << "col: " << col << " row: " << row << " occupy: " << l_occupy[ihost][col][row] << endl;
+	  }
+	}
 
-	cout << "tree_center_x: " << tree_center_x << " tree_center_y: " << tree_center_y << endl;
-	cout << "liana_center_x: " << liana_center_x << " liana_center_x: " << l_host[ihost]->t_Crown_Radius*cos(PI*l_AngPos[ihost]/180.) << endl;
-	cout << "liana_center_y: " << liana_center_y << " liana_center_y: " << l_host[ihost]->t_Crown_Radius*sin(PI*l_AngPos[ihost]/180.) << endl;
 
       }
     }
@@ -2514,6 +2543,7 @@ void AllocMem() {
         /* in number of horizontal cells */
       }
     }
+    CRMAX  = int(0.80+10.47*d-3.33*d*d);
     
     RMAX = int(r+p_nonvert*NH*LV*HEIGHT);
     //  RMAX = int(r);

@@ -957,6 +957,7 @@ public:
 		     float *hCrRad, float *hCrDep,
 		     float *ldbh); /* liana initialisation from field data */
 
+  void CalcLAI();
 };
 
 
@@ -1190,6 +1191,46 @@ void Tree::CalcLAI() {
             }
         }
     }
+}
+
+
+void Liana::CalcLAI(){
+  if(l_age > 0){
+
+    for(int ihost=0;ihost<l_nhost;ihost++){
+      // Host tree coordinates
+      int center_x = l_host[ihost]->t_site/cols; 
+      int center_y = l_host[ihost]->t_site%cols;
+      // Host tree radius
+      int crown_r = (int) (l_host[ihost]->t_Crown_Radius);
+      // Loop over canopy of host tree
+      for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	int diffy = col - center_y;
+	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	  int diffx = row - center_x;
+	  // Test if this voxel is occupied
+	  if(l_occupy[ihost][diffy+CRMAX][diffx+CRMAX] == 1){
+	    int site=col+cols*row+SBORD;
+
+	    /*
+	    if(crown_top-crown_base == 0) {
+	      LAI3D[crown_top][site] += t_dens*t_Crown_Depth;
+	    }else{
+	      LAI3D[crown_top][site] += t_dens*(t_Tree_Height-crown_top);
+	      LAI3D[crown_base][site] += t_dens*(crown_base+1-(t_Tree_Height-t_Crown_Depth));
+	      if(crown_top-crown_base>=2){
+		for(int h=crown_base+1;h <= crown_top-1;h++)
+		  LAI3D[h][site] += t_dens;    // loop over the crown depth
+	      }
+	    }
+	    */
+
+	  }
+	}
+      }
+    }
+
+  }
 }
 
 
@@ -2677,6 +2718,10 @@ void UpdateField() {
     for(site=0;site<sites;site++)                                    /* Each tree contribues to LAI3D */
         T[site].CalcLAI();
     
+
+    for(site=0;site<sites;site++)L[site].CalcLAI(); /* Each liana contributes to LAI3D. Liana
+						       leaves potentially replace tree leaves. */
+
     for(haut=HEIGHT;haut>0;haut--){                                 /* LAI is computed by summing LAI from the canopy top to the ground */
         for(site=0;site<sites;site++){
             sbsite=site+SBORD;

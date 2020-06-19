@@ -939,15 +939,6 @@ public:
 
   Tree **l_host; /* pointers to the host trees*/
 
-  float *l_AngPos; /* Angle of 2D radius vector in X-Y space. The vector points from host tree 
-		       center to the center of the liana canopy. Measured in degrees, so it ranges 
-		       from 0 to 360 */
-  float *l_ZPos; /* Vertical location of the top of the liana canopy. Measured in units of 
-		     host tree crown depth. Ranges from 0 to 1. A value of 1 means that the top of 
-		     the liana canopy is at the top of the tree canopy; a value of 0 means that 
-		     the top of the liana canopy is at the bottom of the tree canopy (and thus 
-		     the liana canopy would be non-existent) */
-
   Tree *l_stem; /* contains properties of each aboveground stem */
 
   int ***l_occupy; /* specifies whether host tree voxel is occupied by the liana */
@@ -963,7 +954,7 @@ public:
   };
 
   void BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
-		     float *hAngPos, float *hZPos, float *hCrRad, float *hCrDep,
+		     float *hCrRad, float *hCrDep,
 		     float *ldbh); /* liana initialisation from field data */
 
 };
@@ -1075,7 +1066,7 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
 
 void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_measured, int nhost, 
 			  int *hsite,
-			  float *AngPos, float *ZPos, float *CrRad, float *CrDep,
+			  float *CrRad, float *CrDep,
 			  float *ldbh) {
     
   // Modelled following Tree::Birth. However, various aspects particular to lianas
@@ -1093,10 +1084,6 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
       // Pointers to host trees
       if (NULL==(l_host=new Tree*[nhost])) cerr<<"!!! Mem_Alloc\n";
 
-      // Coordinates of liana canopy relative to host canopy
-      if (NULL==(l_AngPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
-      if (NULL==(l_ZPos=new float[nhost])) cerr<<"!!! Mem_Alloc\n";
-
       // Tree structure to contain stem-specific information
       if (NULL==(l_stem=new Tree[nhost])) cerr<<"!!! Mem_Alloc\n";
 
@@ -1110,10 +1097,6 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	/* Set pointer to host tree */
 	l_host[ihost] = T+hsite[ihost];
 
-	/* Position of liana canopy */
-	l_AngPos[ihost] = AngPos[ihost];
-	l_ZPos[ihost] = ZPos[ihost];
-
 	/* Initialize the stem like a tree */
 	l_stem[ihost].BirthFromData(S,nume,hsite[ihost],ldbh[ihost]);
 
@@ -1121,19 +1104,11 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	l_stem[ihost].t_Crown_Radius = CrRad[ihost] * l_host[ihost]->t_Crown_Radius;
 	l_stem[ihost].t_Crown_Depth = CrDep[ihost] * l_host[ihost]->t_Crown_Depth;
 	l_stem[ihost].t_dbh = ldbh[ihost];
-	l_stem[ihost].t_Tree_Height = l_host[ihost]->t_Tree_Height - (1.0 - l_ZPos[ihost]) *
-	  l_host[ihost]->t_Crown_Depth;
-
-	/* Calculate area of overlap */
-	float r1 = l_host[ihost]->t_Crown_Radius;
-	float r2 = l_stem[ihost].t_Crown_Radius;
-	float d1 = (2.0*r1*r1 - r2*r2)/(2. * r1);
-	float d2 = r1 -d1;
-	float Aintersect = r1*r1*acos(d1/r1)-d1*sqrt(r1*r1-d1*d1)+
-	  r2*r2*acos(d2/r2)-d2*sqrt(r2*r2-d2*d2);
+	l_stem[ihost].t_Tree_Height = l_host[ihost]->t_Tree_Height;
 
 	/* Set liana leaf area */
-	l_stem[ihost].t_leafarea = l_stem[ihost].t_dens * Aintersect * l_stem[ihost].t_Crown_Depth;
+	l_stem[ihost].t_leafarea = l_stem[ihost].t_dens * PI * l_stem[ihost].t_Crown_Radius *
+	  l_stem[ihost].t_Crown_Radius * l_stem[ihost].t_Crown_Depth;
 	l_stem[ihost].t_youngLA = 0.25 * l_stem[ihost].t_leafarea;
 	l_stem[ihost].t_matureLA = 0.5 * l_stem[ihost].t_leafarea;
 	l_stem[ihost].t_oldLA = 0.25 * l_stem[ihost].t_leafarea;
@@ -1146,35 +1121,19 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	}
 
 	/* Identify which pixels are occupied by the liana */
-	int tree_center_x = l_host[ihost]->t_site/cols; 
-	int tree_center_y = l_host[ihost]->t_site%cols;
-	int tree_crown_r_cells = (int) (l_host[ihost]->t_Crown_Radius);
-	int liana_center_x = tree_center_x + (int) (l_host[ihost]->t_Crown_Radius*cos(PI*l_AngPos[ihost]/180.));
-	int liana_center_y = tree_center_y + (int) (l_host[ihost]->t_Crown_Radius*sin(PI*l_AngPos[ihost]/180.));
-	int liana_crown_r_cells = (int) (l_stem[ihost].t_Crown_Radius);
-	cout << "Tx: " << tree_center_x << " Ty: " << tree_center_y << " TCR: " << l_host[ihost]->t_Crown_Radius << endl;
-	cout << "Lx: " << liana_center_x << " Ly: " << liana_center_y << endl;
-        for(int col=max(0,liana_center_y-liana_crown_r_cells);
-	    col<=min(cols-1,liana_center_y+liana_crown_r_cells);col++) {
-	  int diffy = col - liana_center_y;
-	  for(int row=max(0,liana_center_x-liana_crown_r_cells);
-	      row<=min(rows-1,liana_center_x+liana_crown_r_cells);row++) {
-	    int diffx = row - liana_center_x;
-	    if(diffx*diffx + diffy*diffy <= liana_crown_r_cells*liana_crown_r_cells){
-	      if((col-tree_center_y)*(col-tree_center_y)+(row-tree_center_x)*(row-tree_center_x) <= tree_crown_r_cells * tree_crown_r_cells){
-		l_occupy[ihost][diffy+CRMAX][diffx+CRMAX] = 1;
-	      }
+	int center_x = l_host[ihost]->t_site/cols; 
+	int center_y = l_host[ihost]->t_site%cols;
+	int crown_r = (int) (l_stem[ihost].t_Crown_Radius);
+        for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	  int diffy = col - center_y;
+	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	    int diffx = row - center_x;
+	    if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	      l_occupy[ihost][diffy+CRMAX][diffx+CRMAX] = 1;
 	    }
 	  }
 	}
-
-        for(int col=0;col<(2*CRMAX+1);col++){
-	  for(int row=0;row<(2*CRMAX+1);row++){
-	    if(l_occupy[ihost][col][row] > 0)cout << "col: " << col << " row: " << row << " occupy: " << l_occupy[ihost][col][row] << endl;
-	  }
-	}
-
-
+	
       }
     }
 
@@ -2442,7 +2401,6 @@ void InitialiseFromData(){
     float height_max=0;                                                             // diagnostics
     int nhosts;
     int host_row, host_col, host_site[sites];
-    float AngPos[sites], ZPos[sites];
     float CrDep[sites], CrRad[sites];
     float ldbh[sites];
 
@@ -2467,8 +2425,8 @@ void InitialiseFromData(){
       for(int ihost = 0; ihost < nhosts; ihost++){
 	In >> host_col >> host_row;
 	host_site[ihost] = host_col + host_row * cols;
-	In >> AngPos[ihost] >> CrRad[ihost];
-	In >> ZPos[ihost] >> CrDep[ihost];
+	In >> CrRad[ihost];
+	In >> CrDep[ihost];
 	In >> ldbh[ihost];
 	ldbh[ihost] *= 0.001; // convert from m to mm
       }
@@ -2487,7 +2445,7 @@ void InitialiseFromData(){
 	    if(S[sp_lab_data].s_liana){
 
 	      // immediate liana birth
-	      if(L[col_int+row_int*cols].l_age==0) L[col_int+row_int*cols].BirthFromData(T,S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,AngPos,ZPos,CrRad,CrDep,ldbh);
+	      if(L[col_int+row_int*cols].l_age==0) L[col_int+row_int*cols].BirthFromData(T,S,sp_lab_data,col_int+row_int*cols,dbh_measured,nhosts,host_site,CrRad,CrDep,ldbh);
             
 	    }else{
 

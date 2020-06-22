@@ -943,7 +943,7 @@ public:
 
   Tree *l_stem; /* contains properties of each aboveground stem */
 
-  int ***l_occupy; /* specifies whether host tree voxel is occupied by the liana */
+  float ****l_laidens; /* specifies whether host tree voxel is occupied by the liana */
 
   Liana(){
     l_sp_lab = 0;
@@ -1092,7 +1092,7 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 
       // Specify which host tree canopy voxels are occupied by the liana stem. First, set up
       // host index.
-      if (NULL==(l_occupy=new int**[nhost])) cerr<<"!!! Mem_Alloc\n";
+      if (NULL==(l_laidens=new float***[nhost])) cerr<<"!!! Mem_Alloc\n";
       
       // Loop over all stems
       for(int ihost=0; ihost < nhost; ihost++){
@@ -1117,29 +1117,35 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 	l_stem[ihost].t_oldLA = 0.25 * l_stem[ihost].t_leafarea;
 
 	/* Allocate occupancy indicator for this host */
-	if(NULL == (l_occupy[ihost] = new int*[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
-	for(int icr=0;icr<(2*CRMAX+1);icr++){
-	  if(NULL == (l_occupy[ihost][icr] = new int[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
-	  for(int jcr=0;jcr<(2*CRMAX+1);jcr++)l_occupy[ihost][icr][jcr]=0;
+	if(NULL == (l_laidens[ihost] = new float**[CDMAX+1]))cerr << "!!! Mem_Alloc\n";
+	for(int h=0;h<(CDMAX+1);h++){
+	  if(NULL == (l_laidens[ihost][h] = new float*[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
+	  for(int icr=0;icr<(2*CRMAX+1);icr++){
+	    if(NULL == (l_laidens[ihost][h][icr] = new float[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
+	    for(int jcr=0;jcr<(2*CRMAX+1);jcr++)l_laidens[ihost][h][icr][jcr]=0.;
+	  }
 	}
 
 	/* Identify which pixels are occupied by the liana */
 	int center_x = l_host[ihost]->t_site/cols; 
 	int center_y = l_host[ihost]->t_site%cols;
 	int crown_r = (int) (l_stem[ihost].t_Crown_Radius);
+	int crown_top = (int) (l_host[ihost]->t_Tree_Height);
+	int crown_bot = (int) (l_host[ihost]->t_Tree_Height - l_host[ihost]->t_Crown_Depth);
+	cout << "crown top: " << crown_top << " crown bot: " << crown_bot << endl;
         for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	  int diffy = col - center_y;
 	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	    int diffx = row - center_x;
 	    if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-	      l_occupy[ihost][diffy+CRMAX][diffx+CRMAX] = 1;
+	      l_laidens[ihost][crown_top-crown_bot][diffy+CRMAX][diffx+CRMAX] = l_stem[ihost].t_dens;
 	    }
 	  }
 	}
 	
       }
     }
-
+    
     (l_s->s_nbind)++;
     nblivelianas++;
     
@@ -1199,34 +1205,29 @@ void Tree::CalcLAI() {
 void Liana::CalcLAI(){
   if(l_age > 0){
 
+    int center_x, center_y, crown_r, crown_base, crown_top;
+
     for(int ihost=0;ihost<l_nhost;ihost++){
+
       // Host tree coordinates
-      int center_x = l_host[ihost]->t_site/cols; 
-      int center_y = l_host[ihost]->t_site%cols;
+      center_x = l_host[ihost]->t_site/cols; 
+      center_y = l_host[ihost]->t_site%cols;
       // Host tree radius
-      int crown_r = (int) (l_host[ihost]->t_Crown_Radius);
+      crown_r = (int) (l_host[ihost]->t_Crown_Radius);
+      // Host tree crown base and top
+      crown_base = int(l_host[ihost]->t_Tree_Height-l_host[ihost]->t_Crown_Depth);
+      crown_top = int(l_host[ihost]->t_Tree_Height);
       // Loop over canopy of host tree
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	  int diffx = row - center_x;
+	  int site=col+cols*row+SBORD;
 	  // Test if this voxel is occupied
-	  if(l_occupy[ihost][diffy+CRMAX][diffx+CRMAX] == 1){
-	    int site=col+cols*row+SBORD;
-
-	    /*
-	    if(crown_top-crown_base == 0) {
-	      LAI3D[crown_top][site] += t_dens*t_Crown_Depth;
-	    }else{
-	      LAI3D[crown_top][site] += t_dens*(t_Tree_Height-crown_top);
-	      LAI3D[crown_base][site] += t_dens*(crown_base+1-(t_Tree_Height-t_Crown_Depth));
-	      if(crown_top-crown_base>=2){
-		for(int h=crown_base+1;h <= crown_top-1;h++)
-		  LAI3D[h][site] += t_dens;    // loop over the crown depth
-	      }
+	  for(int h=crown_base;h<=crown_top;h++){
+	    if(l_laidens[ihost][h-crown_base][diffy+CRMAX][diffx+CRMAX] > 0.){
+	      LAI3D[h][site] += l_laidens[ihost][h][diffy+CRMAX][diffx+CRMAX];
 	    }
-	    */
-
 	  }
 	}
       }

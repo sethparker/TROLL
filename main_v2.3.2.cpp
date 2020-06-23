@@ -953,6 +953,11 @@ public:
     l_nhost = 0;
   };
 
+  Liana( const Liana& other ) :
+    l_site( other.l_site ), l_from_Data( other.l_from_Data),
+    l_sp_lab( other.l_sp_lab), l_s(other.l_s)
+  {}
+
   virtual ~Liana(){
   };
 
@@ -960,7 +965,10 @@ public:
 		     float *hCrRad, float *hCrDep,
 		     float *ldbh); /* liana initialisation from field data */
 
+
   void CalcLAI();
+  void Update();
+
 
 };
 
@@ -1550,7 +1558,19 @@ void Tree::Death() {
     if ((t_s->s_nbind)>0) (t_s->s_nbind)--;
     nblivetrees--;
     t_s = NULL;
-    
+
+}
+
+void Liana::Update(){
+
+  // Loop over host trees
+  for(int ihost=0;ihost<l_nhost;ihost++){
+    // Check if host tree died
+    if(l_host[ihost]->t_age == 0){
+      // Kill the liana stem associated with the dead host
+      l_stem[ihost].Death();
+    }
+  }
 }
 
 
@@ -1604,7 +1624,7 @@ void Tree::Update() {
 
     if(t_age) {
 
-      //DM: t_PPFD is tricky because it varies throughout the canopy. However, it is not
+      //DM: t_PPFD is tricky because it varies throughout the crown. However, it is not
       //actually used in DeathRateNDD or DeathRate.
         if(_NDD)
             death = int(genrand2()+t_s->DeathRateNDD(t_PPFD, t_dbh,t_NPPneg, t_NDDfield[t_sp_lab]));
@@ -1885,7 +1905,7 @@ int main(int argc,char *argv[]) {
     
     BirthInit();            /* Initial configuration of the forest */
     out.close();
-    
+
     cout << "klight is: " << klight << endl;
     cout << "CO2 concentration is: " << Cair << endl;
 
@@ -3036,6 +3056,12 @@ void UpdateTree() {
         /***** Tree evolution: Growth or death *****/
         T[site].Update();
     }
+    for(site=0;site<sites;site++) {
+        /***** Liana evolution: Growth or death *****/
+        L[site].Update();
+    }
+
+
     
 #ifdef DCELL
     // This loop has been moved upwards before the tree birth loop

@@ -56,6 +56,7 @@
 # include <limits>
 # include <ctime>
 # include <cmath>
+# include <vector>
 # ifdef MPI
 # include "mpi.h"
 # endif
@@ -876,7 +877,7 @@ public:
     t_sp_lab,               /* species label */
     t_hurt;                 /* treefall index */
     
-    Tree(){                 /* constructor */
+  Tree(int n=(numesp+1)){                 /* constructor */
         t_from_Data = 0;
         t_sp_lab = 0;
         t_age = 0;
@@ -890,20 +891,15 @@ public:
         if(_BASICTREEFALL) t_Ct = 0.0;
         
         t_dbh = t_Tree_Height = t_Crown_Radius = 0.0;
-        
+
+	if(_NDD){
+	  t_NDDfield = new float[n];
+	  for(int ii=0;ii<n;ii++) t_NDDfield[ii]=0;
+	}
     };
     
-  Tree( const Tree& other ){
-    ls_host = other.ls_host;
-    ls_t = other.ls_t;
-
-    if(_NDD){
-      if(NULL == (t_NDDfield = new float[numesp+1]))cerr << "!!! Mem_Alloc\n";
-    }
-  };
-  
   virtual ~Tree() {
-    delete [] t_NDDfield;   /* _NDD */
+    if(_NDD)delete [] t_NDDfield;   /* _NDD */
   };	/* destructor */
     
     
@@ -936,29 +932,23 @@ public:
  ############     Liana  class    ############
  ############################################
  ############################################*/
-class LianaStem {
+
+class LianaStem{
 public:
+  Tree *ls_host;
+  Tree ls_t;
+  float ***ls_laidens;
 
-  Tree *ls_host; /* Pointer to host tree */
-  Tree ls_t; /* Properties of the liana stem associated with class Tree */
-  float ***ls_laidens; /* specifies whether host tree voxel is occupied by the liana */
-
-  LianaStem(){
+  LianaStem(int length=2*CRMAX+1, int height=CDMAX+1){
     ls_host = NULL;
-  };
-
-  LianaStem( const LianaStem& other ){
-    ls_host = other.ls_host;
-    ls_t = other.ls_t;
-
-    if(NULL == (ls_laidens = new float**[CDMAX+1]))cerr << "!!! Mem_Alloc\n";
-    for(int h=0;h<(CDMAX+1);h++){
-      if(NULL == (ls_laidens[h] = new float*[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
-      for(int icr=0;icr<(2*CRMAX+1);icr++){
-	if(NULL == (ls_laidens[h][icr] = new float[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
-	for(int jcr=0;jcr<(2*CRMAX+1);jcr++){
-	  ls_laidens[h][icr][jcr]=other.ls_laidens[h][icr][jcr];
-	}
+    ls_laidens = new float**[height];
+    for(int h=0;h<height;h++){
+      ls_laidens[h] = new float*[length];
+      for(int icr=0;icr<length;icr++){
+  	ls_laidens[h][icr] = new float[length];
+  	for(int jcr=0;jcr<length;jcr++){
+  	  ls_laidens[h][icr][jcr]=0;
+  	}
       }
     }
   };
@@ -993,7 +983,8 @@ public:
 
   int l_nhost; /* current number of host trees for this liana */
 
-  LianaStem *l_stem; /* Liana stems */
+  std::vector<LianaStem> l_stem;
+  std::vector<float> tester;
 
   Liana(){
     l_sp_lab = 0;
@@ -1002,16 +993,9 @@ public:
     l_age = 0;
     l_from_Data = 0;
     l_nhost = 0;
-    l_stem = NULL;
   };
 
-  Liana( const Liana& other ) :
-    l_site( other.l_site ), l_from_Data( other.l_from_Data),
-    l_sp_lab( other.l_sp_lab), l_s(other.l_s)
-  {}
-
   virtual ~Liana(){
-    delete [] l_stem;
   };
 
   void BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_measured, int nhost, int *hsite,
@@ -1019,9 +1003,8 @@ public:
 		     float *ldbh); /* liana initialisation from field data */
 
 
-  void CalcLAI();
   void Update();
-
+  void CalcLAI();
 
 };
 
@@ -1152,16 +1135,6 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   ls_t.t_matureLA = 0.5 * ls_t.t_leafarea;
   ls_t.t_oldLA = 0.25 * ls_t.t_leafarea;
 
-  /* Allocate occupancy indicator for this host */
-  if(NULL == (ls_laidens = new float**[CDMAX+1]))cerr << "!!! Mem_Alloc\n";
-  for(int h=0;h<(CDMAX+1);h++){
-    if(NULL == (ls_laidens[h] = new float*[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
-    for(int icr=0;icr<(2*CRMAX+1);icr++){
-      if(NULL == (ls_laidens[h][icr] = new float[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
-      for(int jcr=0;jcr<(2*CRMAX+1);jcr++)ls_laidens[h][icr][jcr]=0.;
-    }
-  }
-
   /* Identify which pixels are occupied by the liana */
   int center_x = ls_host->t_site/cols; 
   int center_y = ls_host->t_site%cols;
@@ -1200,20 +1173,18 @@ void Liana::BirthFromData(Tree *T, Species *S, int nume, int site0, float dbh_me
 
     if(nhost > 0){
       // Set up the individual stems for the liana
-      if (NULL==(l_stem=new LianaStem[nhost])) cerr<<"!!! Mem_Alloc\n";
+
+      l_stem.resize(nhost);
 
       // Loop over all stems
       for(int ihost=0; ihost < nhost; ihost++){
-
 	l_stem[ihost].BirthFromData(T, S, hsite[ihost], ldbh[ihost], nume, CrRad[ihost],
 				    CrDep[ihost]);
-
       }
     }
-    
+
     (l_s->s_nbind)++;
     nblivelianas++;
-    
 }
 
 
@@ -1283,6 +1254,7 @@ void LianaStem::CalcLAI(){
   // Host tree crown base and top
   crown_base = int(ls_host->t_Tree_Height-ls_host->t_Crown_Depth);
   crown_top = int(ls_host->t_Tree_Height);
+
   // Loop over canopy of host tree
   for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
     int diffy = col - center_y;
@@ -1305,9 +1277,7 @@ void Liana::CalcLAI(){
   if(l_age > 0){
 
     for(int ihost=0;ihost<l_nhost;ihost++){
-
       l_stem[ihost].CalcLAI();
-
     }
 
   }
@@ -1623,43 +1593,16 @@ void Tree::Death() {
 
 void Liana::Update(){
 
-  int new_nhost, ihost;
-  LianaStem *l_stem_update;
-
-  new_nhost = 0;
-
-  // Loop over host trees
-  for(int ihost=0;ihost<l_nhost;ihost++){
-    // Check if host tree died
-    if(l_stem[ihost].ls_host->t_dbh > 0){
-      new_nhost++;
+  if(l_age){
+    // Loop over host trees
+    for(int ihost=0;ihost<l_stem.size();ihost++){
+      // Check if host tree died
+      if(l_stem[ihost].ls_host->t_dbh == 0){
+	l_stem.erase(l_stem.begin()+ihost);
+	l_nhost--;
+      }
     }
   }
-
-  if(new_nhost == 0 && l_nhost > 0){
-    delete [] l_stem;
-    l_nhost = 0;
-    l_stem = NULL;
-  }else{
-    if(new_nhost < l_nhost){
-      if (NULL==(l_stem_update=new LianaStem[new_nhost])) cerr<<"!!! Mem_Alloc\n";
-      int ihost_update = 0;
-      for(ihost=0;ihost<l_nhost;ihost++){
-	if(l_stem[ihost].ls_host->t_dbh > 0){
-	  l_stem_update[ihost_update] = l_stem[ihost];
-	  ihost_update++;
-	}
-      }
-      delete [] l_stem;
-      if (NULL==(l_stem=new LianaStem[new_nhost])) cerr<<"!!! Mem_Alloc\n";
-      l_nhost = new_nhost;
-      for(ihost=0;ihost<l_nhost;ihost++){
-	l_stem[ihost] = l_stem_update[ihost];
-      }
-      delete [] l_stem_update;
-    }
-  }
-
 }
 
 
@@ -1719,7 +1662,7 @@ void Tree::Update() {
             death = int(genrand2()+t_s->DeathRateNDD(t_PPFD, t_dbh,t_NPPneg, t_NDDfield[t_sp_lab]));
         else
             death = int(genrand2()+t_s->DeathRate(t_PPFD, t_dbh, t_NPPneg));
-	death=1;
+
         if(death){
             /* Natural death caused by unsustained photosynthesis and density dependance */
             nbdead_n1++;
@@ -2184,13 +2127,6 @@ void Initialise() {
     if(NULL==(T=new Tree[sites])) {
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Tree" << endl;
-    }
-    
-    if(_NDD){
-        for(int site=0;site<sites;site++) {
-            if (NULL==(T[site].t_NDDfield = new float[numesp+1])) cerr<<"!!! Mem_Alloc\n";
-            for(int ii=0;ii<(numesp+1);ii++) T[site].t_NDDfield[ii]=0;
-        }
     }
     
     
@@ -3145,6 +3081,8 @@ void UpdateTree() {
         /***** Tree evolution: Growth or death *****/
         T[site].Update();
     }
+
+
     for(site=0;site<sites;site++) {
         /***** Liana evolution: Growth or death *****/
         L[site].Update();

@@ -893,9 +893,18 @@ public:
         
     };
     
-    virtual ~Tree() {
-        delete [] t_NDDfield;   /* _NDD */
-    };	/* destructor */
+  Tree( const Tree& other ){
+    ls_host = other.ls_host;
+    ls_t = other.ls_t;
+
+    if(_NDD){
+      if(NULL == (t_NDDfield = new float[numesp+1]))cerr << "!!! Mem_Alloc\n";
+    }
+  };
+  
+  virtual ~Tree() {
+    delete [] t_NDDfield;   /* _NDD */
+  };	/* destructor */
     
     
     void Birth(Species*,int,int);	/* tree birth */
@@ -936,6 +945,22 @@ public:
 
   LianaStem(){
     ls_host = NULL;
+  };
+
+  LianaStem( const LianaStem& other ){
+    ls_host = other.ls_host;
+    ls_t = other.ls_t;
+
+    if(NULL == (ls_laidens = new float**[CDMAX+1]))cerr << "!!! Mem_Alloc\n";
+    for(int h=0;h<(CDMAX+1);h++){
+      if(NULL == (ls_laidens[h] = new float*[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
+      for(int icr=0;icr<(2*CRMAX+1);icr++){
+	if(NULL == (ls_laidens[h][icr] = new float[2*CRMAX+1]))cerr << "!!! Mem_Alloc\n";
+	for(int jcr=0;jcr<(2*CRMAX+1);jcr++){
+	  ls_laidens[h][icr][jcr]=other.ls_laidens[h][icr][jcr];
+	}
+      }
+    }
   };
 
   virtual ~LianaStem(){
@@ -1598,14 +1623,43 @@ void Tree::Death() {
 
 void Liana::Update(){
 
+  int new_nhost, ihost;
+  LianaStem *l_stem_update;
+
+  new_nhost = 0;
+
   // Loop over host trees
   for(int ihost=0;ihost<l_nhost;ihost++){
     // Check if host tree died
-    if(l_stem[ihost].ls_host->t_age == 0){
-      // Kill the liana stem associated with the dead host
-      (l_stem[ihost].ls_t).Death();
+    if(l_stem[ihost].ls_host->t_dbh > 0){
+      new_nhost++;
     }
   }
+
+  if(new_nhost == 0 && l_nhost > 0){
+    delete [] l_stem;
+    l_nhost = 0;
+    l_stem = NULL;
+  }else{
+    if(new_nhost < l_nhost){
+      if (NULL==(l_stem_update=new LianaStem[new_nhost])) cerr<<"!!! Mem_Alloc\n";
+      int ihost_update = 0;
+      for(ihost=0;ihost<l_nhost;ihost++){
+	if(l_stem[ihost].ls_host->t_dbh > 0){
+	  l_stem_update[ihost_update] = l_stem[ihost];
+	  ihost_update++;
+	}
+      }
+      delete [] l_stem;
+      if (NULL==(l_stem=new LianaStem[new_nhost])) cerr<<"!!! Mem_Alloc\n";
+      l_nhost = new_nhost;
+      for(ihost=0;ihost<l_nhost;ihost++){
+	l_stem[ihost] = l_stem_update[ihost];
+      }
+      delete [] l_stem_update;
+    }
+  }
+
 }
 
 
@@ -1665,7 +1719,7 @@ void Tree::Update() {
             death = int(genrand2()+t_s->DeathRateNDD(t_PPFD, t_dbh,t_NPPneg, t_NDDfield[t_sp_lab]));
         else
             death = int(genrand2()+t_s->DeathRate(t_PPFD, t_dbh, t_NPPneg));
-
+	death=1;
         if(death){
             /* Natural death caused by unsustained photosynthesis and density dependance */
             nbdead_n1++;

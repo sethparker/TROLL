@@ -876,6 +876,8 @@ public:
     t_from_Data,            /* indicator of whether tree is born through initialisation or through simulation routine */
     t_sp_lab,               /* species label */
     t_hurt;                 /* treefall index */
+
+  float t_lianavolume; /* Volume of tree crown occupied by lianas */
     
   Tree(int n=(numesp+1)){                 /* constructor */
         t_from_Data = 0;
@@ -896,6 +898,9 @@ public:
 	  t_NDDfield = new float[n];
 	  for(int ii=0;ii<n;ii++) t_NDDfield[ii]=0;
 	}
+
+	t_lianavolume = 0;
+
     };
     
   virtual ~Tree() {
@@ -1225,15 +1230,31 @@ void Tree::CalcLAI() {
                 if(xx*xx+yy*yy<=crown_r*crown_r){  // check whether voxel is within crown
                     site=col+cols*row+SBORD;
                     if(crown_top-crown_base == 0) {
-		      if(!LIANALEAF[crown_top][site])LAI3D[crown_top][site] += t_dens*t_Crown_Depth;
+		      if(LIANALEAF[crown_top][site]){
+			t_lianavolume += t_Crown_Depth;
+		      }else{
+			LAI3D[crown_top][site] += t_dens*t_Crown_Depth;
+		      }
                     }
                     else{
-		      if(!LIANALEAF[crown_top][site])LAI3D[crown_top][site] += t_dens*(t_Tree_Height-crown_top);
-		      if(!LIANALEAF[crown_base][site])LAI3D[crown_base][site] += t_dens*(crown_base+1-(t_Tree_Height-t_Crown_Depth));
-                        if(crown_top-crown_base>=2){
-                            for(int h=crown_base+1;h <= crown_top-1;h++)
-			      if(!LIANALEAF[h][site])LAI3D[h][site] += t_dens;    // loop over the crown depth
-                        }
+		      if(LIANALEAF[crown_top][site]){
+			t_lianavolume += (t_Tree_Height-crown_top);
+		      }else{
+			LAI3D[crown_top][site] += t_dens*(t_Tree_Height-crown_top);
+		      }
+		      if(LIANALEAF[crown_base][site]){
+			t_lianavolume += (crown_base+1-t_Tree_Height+t_Crown_Depth);
+		      }else{
+			LAI3D[crown_base][site] += t_dens*(crown_base+1-(t_Tree_Height-t_Crown_Depth));
+		      }
+		      if(crown_top-crown_base>=2){
+			for(int h=crown_base+1;h <= crown_top-1;h++)
+			  if(LIANALEAF[h][site]){
+			    t_lianavolume += 1.;
+			  }else{
+			    LAI3D[h][site] += t_dens;    // loop over the crown depth
+			  }
+		      }
                         
                     }
                 }
@@ -1255,6 +1276,8 @@ void LianaStem::CalcLAI(){
   crown_base = int(ls_host->t_Tree_Height-ls_host->t_Crown_Depth);
   crown_top = int(ls_host->t_Tree_Height);
 
+  ls_t.t_lianavolume = 0.;
+
   // Loop over canopy of host tree
   for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
     int diffy = col - center_y;
@@ -1266,6 +1289,7 @@ void LianaStem::CalcLAI(){
 	  ldens = ls_laidens[h-crown_base][diffy+CRMAX][diffx+CRMAX];
 	  LAI3D[h][site] += ldens;
 	  LIANALEAF[h][site] += ldens;
+	  ls_t.t_lianavolume += 1;
 	}
       }
     }
@@ -1471,7 +1495,9 @@ void Tree::Growth() {
     else {
         t_NPPneg=0;
         /**** NPP allocation to wood and tree size increment *****/
-        UpdateTreeBiometry();
+        if(!t_s->s_liana){
+	  UpdateTreeBiometry();
+	}
     }
     
     /**** NPP allocation to leaves *****/
@@ -1528,9 +1554,14 @@ void Tree::UpdateLeafDynamics() {
     
     t_litter*=t_s->s_LMA;
     
-    float crownvolume=PI*t_Crown_Radius*LH*t_Crown_Radius*LH*t_Crown_Depth*LV;
+    float crownvolume=1;
+    if(t_s->s_liana){
+      crownvolume = t_lianavolume;
+    }else{
+      crownvolume=PI*t_Crown_Radius*LH*t_Crown_Radius*LH*t_Crown_Depth*LV;
+      crownvolume -= t_lianavolume;
+    }
     t_dens=t_leafarea/crownvolume;
-    
 }
 
 void Tree::UpdateTreeBiometry(){
@@ -1593,14 +1624,22 @@ void Tree::Death() {
 
 void Liana::Update(){
 
+
   if(l_age){
+
     // Loop over host trees
     for(int ihost=0;ihost<l_stem.size();ihost++){
-      // Check if host tree died
+
+      // Check if host tree is still alive
       if(l_stem[ihost].ls_host->t_dbh == 0){
 	l_stem.erase(l_stem.begin()+ihost);
 	l_nhost--;
+	ihost--;
+      }else{
+	(l_stem[ihost].ls_t).Growth();
+	l_stem[ihost].ls_t.t_Tree_Height = l_stem[ihost].ls_host->t_Tree_Height;
       }
+
     }
   }
 }
@@ -1706,7 +1745,6 @@ void Tree::FallTree() {
     int xx,yy;
     //if(_TREEFALL)
     //if(Couple()>t_Ct) { /* above a given stress threshold the tree falls */
-    
     if(genrand2()*t_Tree_Height > t_Ct){
         // given: probability of treefall = 1-t_Ct/t_Tree_Height
         float t_angle = float(twoPi*genrand2());
@@ -2788,9 +2826,14 @@ void UpdateField() {
       }
     }
 
+    for(site=0;site<sites;site++)T[site].t_lianavolume = 0.;
+
     for(site=0;site<sites;site++){
       /* Calculate total liana leaf amount in each voxel */
       L[site].CalcLAI();
+    }
+
+    for(site=0;site<sites;site++){
       /* Each tree contribues to LAI3D */
       T[site].CalcLAI();
     }

@@ -2773,7 +2773,10 @@ void Evolution() {
     
     UpdateField();                                          /* Update light fields and seed banks */
     UpdateTree();                                           /* Update trees */
-    if(_BASICTREEFALL) UpdateTreefall();                    /* Compute and distribute Treefall events */
+
+    //SHOULD THIS BE if(_TREEFALL)? It looks like treefall is being done twice.
+    if(_TREEFALL) UpdateTreefall();                    /* Compute and distribute Treefall events */
+    //    if(_BASICTREEFALL) UpdateTreefall();                    /* Compute and distribute Treefall events */
     Average();                                              /* Compute averages for outputs */
     OutputField();                                          /* Output the statistics */
 }

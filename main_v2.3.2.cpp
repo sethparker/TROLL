@@ -2895,9 +2895,12 @@ void UpdateField() {
             if(T[site].t_age)
                 T[site].DisperseSeed();
 #else
-        for(site=0;site<sites;site++)                                       /* disperse seeds produced by mature trees */
+        for(site=0;site<sites;site++){                                       /* disperse seeds produced by mature trees */
             if(T[site].t_age)
                 T[site].DisperseSeed();
+
+	    if(L[site].l_age)for(int host=0;host<L[site].l_stem.size();host++)L[site].l_stem[host].ls_t.DisperseSeed();
+	}
 #endif
 #ifdef DCELL
     }

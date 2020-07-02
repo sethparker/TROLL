@@ -3426,16 +3426,19 @@ void OutputSnapshot(fstream& output){
 
 /* This provides a snapshot of the lianas whenever called. Per default, this function is used to create the final pattern. I did not want to add it to OutputSnapshot in order to maximize back-compatibility */
 
+
 void OutputSnapshotLiana(fstream& output){
     for(int row=0;row<rows;row++)
         for(int col=0;col<cols;col++){
-	  //            output << col << "\t" << row << "\t" << L[col + cols*row].l_age << "\t" << L[col + cols*row].l_sp_lab << "\t" << L[col + cols*row].l_nhost;
-	  //for(int host=0;host<L[col+cols*row].l_nhost;host++){
-	  //  output << "\t" << L[col+cols*row].l_hsite[host];
-	  //  output << "\t" << "\t" << L[col+cols*row].l_AngPos[host] << "\t" << L[col+cols*row].l_ZPos[host];
-	  //  output << "\t" << L[col+cols*row].l_CrRad[host] << "\t" << L[col+cols*row].l_CrDep[host];
-	  //}
-	  //output << endl;
+	  output << col << "\t" << row << "\t" << L[col + cols*row].l_age << "\t" << L[col + cols*row].l_sp_lab << "\t" << L[col + cols*row].l_stem.size();
+	  for(int host=0;host<L[col+cols*row].l_stem.size();host++){
+	    output << "\t" << L[col+cols*row].l_stem[host].ls_t.t_site << "\t" <<
+	      L[col+cols*row].l_stem[host].ls_t.t_dbh << "\t" << 
+	      L[col+cols*row].l_stem[host].ls_t.t_age << "\t" <<
+	      L[col+cols*row].l_stem[host].ls_t.t_leafarea << "\t" << 
+	      L[col+cols*row].l_stem[host].ls_t.t_GPP;
+	  }
+	  output << endl;
         }
 }
 

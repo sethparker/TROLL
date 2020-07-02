@@ -1006,6 +1006,8 @@ public:
   void Update();
   void CalcLAI();
 
+  void Average();
+
 };
 
 
@@ -1844,6 +1846,14 @@ void Tree::Average() {
         t_s->s_output_field[11] += t_litter*1.0e-6;
         
     }
+}
+
+void Liana::Average(){
+  if(l_age > 0){
+    for(int ihost=0;ihost<l_stem.size();ihost++){
+      l_stem[ihost].ls_t.Average();
+    }
+  }
 }
 
 void Tree::histdbh() {
@@ -3209,8 +3219,11 @@ void Average(void){
             for(i=20;i<23;i++) output[i] << iter << "\t";
             for(spp=1;spp<=numesp;spp++) output[0] << float(S[spp].s_nbind)*inbhectares << "\t";
         }
-        for(site=0;site<sites;site++)T[site].Average();
-        
+        for(site=0;site<sites;site++){
+	  T[site].Average();
+	  L[site].Average();
+        }
+
         cout << iter << "\tNBtrees\t"<<nblivetrees << endl;
         
         for(spp=1;spp<=numesp;spp++) {

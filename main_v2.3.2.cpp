@@ -3076,7 +3076,7 @@ void UpdateTree() {
     else {
         
         for(site=0;site<sites;site++) {                                     /***** Local germination *****/
-            if(T[site].t_age == 0) {
+            if(T[site].t_age == 0 && L[site].l_age == 0) {
                 iii=0;
                 
                 float tot=0;
@@ -3114,7 +3114,10 @@ void UpdateTree() {
                     if(flux>(S[spp].s_LCP)){
                         /* If enough light, germination, initialization of NPP (LCP is the species light compensation point*/
                         /* here, light is the sole environmental resources tested as a limiting factor for germination, but we should think about adding nutrients (N,P) and water conditions... */
-                        T[site].Birth(S,spp,site);
+		      if(S[spp].s_liana){
+		      }else{
+			T[site].Birth(S,spp,site);
+		      }
                     }
                 }
             }

@@ -1340,6 +1340,7 @@ void Tree::Fluxh(int h) {
     float absorb_below=0.;
     radius_int = int(t_Crown_Radius);
     if(radius_int == 0) {
+      if( (!t_s->s_liana && !LIANALEAF[h][t_site+SBORD]) || (t_s->s_liana && LIANALEAF[h][t_site+SBORD])){
         count=1;
 	// Layer leaf area density
 	if (h -1 < HEIGHT) {
@@ -1350,15 +1351,16 @@ void Tree::Fluxh(int h) {
 	  absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
 	  layer_lai -= LAI3D[h][t_site+SBORD];
 	}
-
+	
         // absorb = 0.0 by default
         int intabsorb=int(absorb*20.0);  // LAD * 20
         int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
-
-        t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]); // umol/m2/s
+	
+	t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]); // umol/m2/s
 	if(layer_lai > 0.)t_PPFD *= 1./layer_lai;
         t_VPD  = VPDmax*LookUp_VPD[intabsorb];
         t_T    = tmax - LookUp_T[intabsorb];
+      }
     }
     else {
         int row0,col0;
@@ -1371,29 +1373,34 @@ void Tree::Fluxh(int h) {
                 yy=row0-row;
                 if(xx*xx+yy*yy <= radius_int*radius_int) {
                     //is the voxel within crown?
-                    count++;
-		    absorb = 0;
-		    absorb_below = 0;
-		    if (h < HEIGHT){
-		      absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
-		      lai_sum -= LAI3D[h][col+cols*row+SBORD];
+		  if( (!t_s->s_liana && !LIANALEAF[h][col+cols*row+SBORD]) || 
+			(t_s->s_liana && LIANALEAF[h][col+cols*row+SBORD])){
+		      count++;
+		      absorb = 0;
+		      absorb_below = 0;
+		      if (h < HEIGHT){
+			absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
+			lai_sum -= LAI3D[h][col+cols*row+SBORD];
+		      }
+		      if (h-1 < HEIGHT) {
+			absorb_below = minf(LAI3D[h-1][col+cols*row+SBORD],19.5);
+			lai_sum += LAI3D[h-1][col+cols*row+SBORD];
+		      }
+		      int intabsorb=int(absorb*20.0);
+		      int intabsorb_below=int(absorb_below*20.0);
+		      t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);
+		      t_VPD  += VPDmax*LookUp_VPD[intabsorb];
+		      t_T    += tmax - LookUp_T[intabsorb];
 		    }
-                    if (h-1 < HEIGHT) {
-		      absorb_below = minf(LAI3D[h-1][col+cols*row+SBORD],19.5);
-		      lai_sum += LAI3D[h-1][col+cols*row+SBORD];
-		    }
-                    int intabsorb=int(absorb*20.0);
-                    int intabsorb_below=int(absorb_below*20.0);
-                    t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);
-                    t_VPD  += VPDmax*LookUp_VPD[intabsorb];
-                    t_T    += tmax - LookUp_T[intabsorb];
                 }
             }
         }
     }
     if(lai_sum > 0.)t_PPFD *= 1.0/lai_sum;
-    t_VPD  *= 1.0/float(count);
-    t_T    *= 1.0/float(count);
+    if(count > 0){
+      t_VPD  *= 1.0/float(count);
+      t_T    *= 1.0/float(count);
+    }
 }
 
 
@@ -1663,12 +1670,14 @@ void Liana::Update(){
       }else{
 	(l_stem[ihost].ls_t).Growth();
 	l_stem[ihost].ls_t.t_Tree_Height = l_stem[ihost].ls_host->t_Tree_Height;
+	l_stem[ihost].ls_t.t_Crown_Depth = l_stem[ihost].ls_host->t_Crown_Depth;
+	l_stem[ihost].ls_t.t_Crown_Radius = l_stem[ihost].ls_host->t_Crown_Radius;
       }
 
     }
 
+    if(death)Death();
     
-
   }
 }
 

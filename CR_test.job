@@ -1,0 +1,8 @@
+#!/bin/bash
+#$ -q long
+#$ -M sparker3@nd.edu
+#$ -m abe
+#$ -q *@@medvigy
+#$ -pe smp 1
+#$ -N TROLL
+./main_v2.3.2 -iCR_38sp_input_TROLL.txt -oCR_test

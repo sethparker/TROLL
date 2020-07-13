@@ -102,7 +102,7 @@ _NDD=1,                 /* if defined, negative density dependant processes affe
 _OUTPUT_reduced=1,      /* reduced set of ouput files */
 _OUTPUT_last100=0,      /* output that tracks the last 100 years of the simulation for the whole grid (2D) */
 _OUTPUT_fullLAI=0,       /* output of full final voxel field */
-_FromData=0;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
+_FromData=1;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
 
 
 /********************************/
@@ -390,9 +390,8 @@ public:
     s_time_young,           /* leaf resident time in the young leaf class */
     s_time_mature,          /* leaf resident time in the mature leaf class */
     s_time_old,             /* leaf resident time in the old leaf class */
-    s_output_field[24],         /* scalar output fields per species (<24) */
-    dummy1,                 /* tmax input, SParker May2020 */
-    dummy2;                 /* g1 input, SParker May2020 */
+    s_output_field[24];         /* scalar output fields per species (<24) */
+    int s_liana;            /* 0 indicates tree, 1 indicates liana */
 
 #ifdef DCELL
     int *s_DCELL;	/* number of seeds from the species in each dcell */
@@ -449,16 +448,18 @@ void Species::Init(int nesp,fstream& is) {
     int site;
     float regionalfreq;     // "regional" relative abundance of the species -- new name v.2.2
     float SLA;              // specific leaf area = 1/LMA
-    
+    float dum1, dum2;
+
     /*** Read parameters ***/
     
     //new input file -- in v230
-    is  >> s_name >> s_Nmass >> s_LMA >> s_wsg >> s_dmax >> s_hmax >> s_ah >> dummy1 >> s_seedmass >> regionalfreq >> s_Pmass >> dummy2;
-    
+    is  >> s_name >> s_Nmass >> s_LMA >>  s_wsg  >> s_dmax >> s_hmax >> s_ah  >> regionalfreq >> s_seedmass >> dum1 >> s_Pmass >> dum2 >> s_liana;
     // instead of seedmass we are given seedvolume
     // from this we assume a conversion factor of 1 to wet mass (~density of water, makes seeds float)
     // to convert to drymass we use a conversion factor of 0.4 (~40% of the seed are water)
-    
+
+  cout << " s_liana: " << s_liana << endl;
+
     s_seedmass *= 0.4;
     s_iseedmass=1.0/s_seedmass;
     s_ds=40.0;
@@ -478,7 +479,7 @@ void Species::Init(int nesp,fstream& is) {
     else {
         s_nbext = int(regionalfreq*Cseedrain*(sites*LH*LH/10000));
     }
-    
+
     SLA=10000.0/s_LMA;    // computation of specific leaf area in cm^2/g for use in Domingues et al 2010 model of photosynthetic capacities
     
     //s_leaflifespan=1.5+pow(10,(7.18+3.03*log10(s_LMA*0.0001)));           //this is the expression from Reich et al 1991 Oecologia (San Carlos Rio Negro).
@@ -510,6 +511,8 @@ void Species::Init(int nesp,fstream& is) {
     
     s_Rdark=s_LMA*(8.5341-130.6*s_Nmass-567.0*s_Pmass-0.0137*s_LMA+11.1*s_Vcmaxm+187600.0*s_Nmass*s_Pmass)*0.001;
     
+    if(s_wsg > 0.4)s_Rdark *= 0.5;
+
     //s_Rdark corresponds to leaf maintenance respiration. From Table 6 in Atkin et al 2015 New phytologist v.2.0 */
     
     //s_Rdark=(82.36*(s_LMA*1e-3)-0.1561)*(s_LMA*1e-3);                 /* from Domingues et al 2007 */
@@ -562,8 +565,7 @@ void Species::Init(int nesp,fstream& is) {
 void Species::FillSeed(int dcol, int drow, int nbs) {
     
     s_DCELL[dcol+linear_nb_dcells*drow]+=nbs;
-}
-
+	}
 #else
 
 void Species::FillSeed(int col, int row) {
@@ -577,8 +579,7 @@ void Species::FillSeed(int col, int row) {
             else{
                 if(s_Seed[site]!=1) s_Seed[site]=1;     /* If s_Seed[site] = 0, site is not occupied, if s_Seed[site] > 1, s_Seed[site] is the age of the youngest seed  */
             }
-        }
-        
+        }     
 #ifdef MPI                                       /* on each processor a stripe of forest is simulated.
 Nearest neighboring stripes are shared. Rque, this version is not valid ifdef SEEDTRADEOFF */
         else if((row+rows >=0) && (row < 0)) {
@@ -636,7 +637,7 @@ void Species::UpdateSeed() {
 void Species::UpdateSeed() {
     
     /* should probably be modified, since as implemented now seeds are erased every timestep (i.e. month in default mode)--> to be discussed */
-    
+
     if(_SEEDTRADEOFF){
         for(int site=0;site<sites;site++){
 # ifdef MPI
@@ -769,11 +770,11 @@ inline float Species::GPPleaf(float PPFD, float VPD, float T) {
     s_fci=g1/(g1+sqrt(VPD));
     
     /* FvCB model */
-    
+
     float I=alpha*PPFD;
     float J = (I+JmaxT-sqrt((JmaxT+I)*(JmaxT+I)-4.0*theta*JmaxT*I))*0.5/theta;
     float A = minf(VcmaxT/(s_fci+KmT),0.25*J/(s_fci+2.0*GammaT))*(s_fci-GammaT);
-    
+
     return A;
 }
 
@@ -791,6 +792,8 @@ inline float Species::dailyGPPleaf(float PPFD, float VPD, float T, float dens, f
             // new v.2.3.0: compute GPP only if enough light is available threshold is arbitrary, but set to be low: in full sunlight ppfd is aroung 700 W/m2, and even at dawn, it is ca 3% of the max value, or 20 W/m2. The minimum threshold is set to 0.1 W/m2
             // Future update: compute slightly more efficiently, using 3-hourly values? This will have to be aligned with climate forcing layers (e.g. NCAR)
             dailyA+=GPPleaf(ppfde, VPD*daily_vpd[i], T*daily_T[i]);
+
+	//	if(ppfde > 0.1)cout << "ppfde: " << ppfde << " GPP: " << GPPleaf(ppfde,VPD*daily_vpd[i],T*daily_T[i]) << endl;
         //the 6 lines in comment below corresponds to a finer version in which the multiplier is computed and used every 48 half hour, ie. with the corresponding environment instead of assuming a constant multiplier correponding the one at maximum incoming irradiance
         //float hhA=0;
         //hhA=GPPleaf(PPFD*daily_light[i], VPD*daily_vpd[i], T*daily_T[i]);
@@ -916,7 +919,6 @@ public:
  ####  called by BirthInit and UpdateTree   ####
  ##############################################*/
 
-
 void Tree::Birth(Species *S, int nume, int site0) {
     
     t_site = site0;
@@ -933,14 +935,14 @@ void Tree::Birth(Species *S, int nume, int site0) {
     t_Crown_Radius  = ra0;
     t_Crown_Depth = de0;
     t_dens=dens;
-    
+
     t_youngLA=t_dens*PI*t_Crown_Radius*LH*t_Crown_Radius*LH*t_Crown_Depth*LV;
     /* initially, all stems have only young leaves -- LA stands for leaf area */
     t_matureLA=0;           /* this is the amount of leaf area at maturity */
     t_oldLA=0;              /* leaf area of senescing leaves */
     t_leafarea=t_youngLA;   /* should be sum of LA young+mature+old, but the equation is correct initially */
     tempRday=0.0;
-    
+
     float hrealmax=3*t_hmax * t_dbh_thresh/(3*t_dbh_thresh + 2*t_s->s_ah);
     
     t_dbhmature=t_s->s_dmax*0.5; // this correponds to the mean thresholds of tree size to maturity, according to Visser et al. 2016 Functional Ecology (suited to both understory short-statured species, and top canopy large-statured species). NOTE that if we decide to keep it as a fixed species-specific value, this could be defined as a Species calss variable, and computed once in Species::Init. -- v230
@@ -953,7 +955,6 @@ void Tree::Birth(Species *S, int nume, int site0) {
     
     /* setting diagnostic variables */
 }
-
 
 /*##############################################
  ####   Tree Initialization from Data       ####
@@ -1071,16 +1072,31 @@ void Tree::Fluxh(int h) {
     int count=0,
     xx,yy,radius_int;
     float absorb=0.0;
+    float lai_sum=0.;
+    float layer_lai=0.;
     t_PPFD = 0.0;
     t_VPD  = 0.0;
     t_T    = 0.0;
+    float absorb_below=0.;
     radius_int = int(t_Crown_Radius);
     if(radius_int == 0) {
         count=1;
-        if (h < HEIGHT) absorb = minf(LAI3D[h][t_site+SBORD],19.5);
+	// Layer leaf area density
+	if (h -1 < HEIGHT) {
+	  absorb_below = minf(LAI3D[h-1][t_site+SBORD],19.5); // cumulative LAI looking upward from height h-1
+	  layer_lai = LAI3D[h-1][t_site+SBORD];
+	}
+        if (h < HEIGHT) {
+	  absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
+	  layer_lai -= LAI3D[h][t_site+SBORD];
+	}
+
         // absorb = 0.0 by default
-        int intabsorb=int(absorb*20.0);
-        t_PPFD = Wmax*LookUp_flux[intabsorb];
+        int intabsorb=int(absorb*20.0);  // LAD * 20
+        int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
+
+        t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]); // umol/m2/s
+	if(layer_lai > 0.)t_PPFD *= 1./layer_lai;
         t_VPD  = VPDmax*LookUp_VPD[intabsorb];
         t_T    = tmax - LookUp_T[intabsorb];
     }
@@ -1096,16 +1112,26 @@ void Tree::Fluxh(int h) {
                 if(xx*xx+yy*yy <= radius_int*radius_int) {
                     //is the voxel within crown?
                     count++;
-                    if (h < HEIGHT) absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
+		    absorb = 0;
+		    absorb_below = 0;
+		    if (h < HEIGHT){
+		      absorb = minf(LAI3D[h][col+cols*row+SBORD],19.5);
+		      lai_sum -= LAI3D[h][col+cols*row+SBORD];
+		    }
+                    if (h-1 < HEIGHT) {
+		      absorb_below = minf(LAI3D[h-1][col+cols*row+SBORD],19.5);
+		      lai_sum += LAI3D[h-1][col+cols*row+SBORD];
+		    }
                     int intabsorb=int(absorb*20.0);
-                    t_PPFD += Wmax*LookUp_flux[intabsorb];
+                    int intabsorb_below=int(absorb_below*20.0);
+                    t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);
                     t_VPD  += VPDmax*LookUp_VPD[intabsorb];
                     t_T    += tmax - LookUp_T[intabsorb];
                 }
             }
         }
     }
-    t_PPFD *= 1.0/float(count);
+    if(lai_sum > 0.)t_PPFD *= 1.0/lai_sum;
     t_VPD  *= 1.0/float(count);
     t_T    *= 1.0/float(count);
 }
@@ -1118,6 +1144,8 @@ void Tree::Fluxh(int h) {
 
 void Tree::Growth() {
     
+  float layer_prop; //proportion of leaves in a given layer.
+
     /* Flux Tree variables */
     t_GPP=0.0;
     t_NPP=0.0;
@@ -1152,25 +1180,52 @@ void Tree::Growth() {
     else{
         int crown_base=int(t_Tree_Height-t_Crown_Depth)+1; // for flux above crown base
         int crown_top=int(t_Tree_Height)+1;                // for flux above crown top
-        
+
         for(int h=crown_base; h<=crown_top; h++) {
             Fluxh(h);
-            t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth);
-            t_Rday+=tempRday;
+	    float effLA = 189.3 * timestep; // Converts umolC/m2/s into gC/m2 assimilated
+	    // during this timestep.
+	    effLA *= (0.5 * t_leafarea + 0.5 * t_matureLA);
+	    if(crown_base != crown_top){
+	      float norm_fac = 1.0*(t_Crown_Depth - crown_top + crown_base + 1);
+	      if(crown_top-crown_base>=2){
+		for(int hh=crown_base+1;hh <= crown_top-1;hh++)
+		  norm_fac += 1.0;    // loop over the crown depth
+	      }
+	      if(h == crown_top){
+		effLA *= (t_Tree_Height - crown_top + 1)/norm_fac;
+		//cout << crown_base << " " << h << " " << crown_top << " " << (t_Tree_Height-crown_top + 1)/norm_fac << endl;
+	      }else{
+		if(h == crown_base){
+		  effLA *= (crown_base-t_Tree_Height+t_Crown_Depth)/norm_fac;
+		  //cout << crown_base << " " << h << " " << crown_top << " " << (crown_base-t_Tree_Height+t_Crown_Depth)/norm_fac << endl;
+		}else{
+		  effLA *= 1.0/norm_fac;
+		}
+	      }
+	    }
+	    // The code above computes the proportion of leaf area in this level.
+            t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
+            t_Rday+=tempRday*effLA*0.4;
+	    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
+	    t_Rnight+=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
+	    // The calculations of GPP and Rday may be problematic. They output quantities in
+	    // units of umol/m2Leaf/s. They should be multiplied by layer leaf area
+	    // before being summed.
             tempRday=0.0;
         }
-        float inb_layer=1.0/float(crown_top-crown_base+1);  // for averaging procedure
-        t_GPP   *=inb_layer;
-        t_Rday  *=inb_layer;
+	//        float inb_layer=1.0/float(crown_top-crown_base+1);  // for averaging procedure
+        //t_GPP   *=inb_layer;
+        //t_Rday  *=inb_layer;
     }
     
     /* Computation of GPP. New v.2.2: assumes an efficiency of 0.5 for young and old leaves vs. 1 for mature leaves */
     //t_GPP*=(0.5*t_youngLA+t_matureLA+0.5*t_oldLA)*189.3*timestep;
     
     /* effLA is the scaling factor used for all fluxes new in v.2.3.0 */
-    float effLA=0.5*(t_leafarea+t_matureLA)*189.3*timestep;
+    // float effLA=0.5*(t_leafarea+t_matureLA)*189.3*timestep;
     
-    t_GPP*=effLA;
+    //    t_GPP*=effLA;
     
     /* new v.2.2. sapwood thickness (useful to compute stem respiration) */
     float sapthick=0.04;
@@ -1178,14 +1233,11 @@ void Tree::Growth() {
     
     /* new v.2.2 stem respiration -- update lookup v230 */
     int convT= int(iTaccuracy*temp); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
-    int convTnight= int(iTaccuracy*tnight); // temperature data at a resolution of Taccuracy=0.1°C -- stored in lookup tables ranging from 0°C to 50°C ---
     t_Rstem=sapthick*(t_dbh-sapthick)*(t_Tree_Height-t_Crown_Depth)*LookUp_Rstem[convT];
-    t_Rday *= effLA*0.40;
-    t_Rnight=(t_s->s_Rdark)*effLA*LookUp_Rnight[convTnight];
+    //    t_Rday *= effLA*0.40;
     
     t_NPP = 0.75*(t_GPP - 1.5*(t_Rday+t_Rnight+t_Rstem));
     /* Rleaf=Rday+Rnight is multiplied by 1.5 to also account for fine root respiration (cf as in Fyllas et al 2014 and Malhi 2012); Rstem is multiplied by 1.5 to account for coarse root respiration (according to the shoot root biomass ratio of 0.2 - Jérôme's paper in prep- and also to branch respiration (Meir & Grace 2002, Cavaleri 2006, Asao 2005). */
-    
     if(t_NPP<0.0){
         t_NPPneg++;
         t_NPP=0.0;
@@ -1326,7 +1378,11 @@ void Tree::DisperseSeed(){
      light (twice the LCP) */
     /* New v.2.1 threshold of maturity is defined as a size threshold
      (and not age as before), following Wright et al 2005 JTE */
-    if((t_dbh>=t_dbhmature)&&(t_PPFD>2.0*(t_s->s_LCP))) {
+
+  // DM: Note that t_PPFD varies throughout the plant canopy. It is calculated in sequence
+  // in a loop. The last value is the lowest layer.
+
+    if((t_dbh>=t_dbhmature)&&(t_PPFD>2.0*(t_s->s_LCP))&&(!t_s->s_liana)) {
         float rho,theta_angle;
         int nbs=0;
         if(_SEEDTRADEOFF){
@@ -1358,14 +1414,16 @@ void Tree::DisperseSeed(){
 void Tree::Update() {
     
     int death;
-    
+
     if(t_age) {
-        
+
+      //DM: t_PPFD is tricky because it varies throughout the canopy. However, it is not
+      //actually used in DeathRateNDD or DeathRate.
         if(_NDD)
             death = int(genrand2()+t_s->DeathRateNDD(t_PPFD, t_dbh,t_NPPneg, t_NDDfield[t_sp_lab]));
         else
             death = int(genrand2()+t_s->DeathRate(t_PPFD, t_dbh, t_NPPneg));
-        
+
         if(death){
             /* Natural death caused by unsustained photosynthesis and density dependance */
             nbdead_n1++;
@@ -1721,6 +1779,7 @@ void Initialise() {
     int ligne;
     
     fstream In(inputfile, ios::in);
+    char stest[256];
     
     /*** Initialization of the simulation parametres ***/
     /***************************************************/
@@ -1762,7 +1821,7 @@ void Initialise() {
         
         /*Characters shared by species */
         In >> klight; In.getline(buffer,128,'\n');
-        theta = 0.70; /* v.2.3.0 This could be added in the input file, just like klight */
+        theta = 0.95; /* v.2.3.0 This could be added in the input file, just like klight */
         In >> phi; In.getline(buffer,128,'\n');
         In >> g1; In.getline(buffer,128,'\n');
         In >> vC; In.getline(buffer,128,'\n');
@@ -1839,26 +1898,31 @@ void Initialise() {
     
     /*** Initialization of species ***/
     /*********************************/
-  
+    //In.getline(buffer,128,'\n');
+    //In.getline(buffer,128,'\n');
+    //In.getline(buffer,128,'\n');
+
     int sp;
     if(NULL==(S=new Species[numesp+1])) {
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Species" << endl;
     }
     
-    for(ligne=0;ligne<3;ligne++) In.getline(buffer,128,'\n');                           /* Read species parameters (ifstream In) */
+        for(ligne=0;ligne<3;ligne++) In.getline(buffer,128,'\n');                           /* Read species parameters (ifstream In) */
+
     for(sp=1;sp<=numesp;sp++) {
         S[sp].Init(sp,In);
     }
+
     
-cout << S[2].s_name << S[2].s_wsg << endl;
     /*** Initialization of environmental variables ***/
     /*************************************************/
     
     In.getline(buffer,128,'\n');
     In.getline(buffer,128,'\n');
-    In.getline(buffer,128,'\n');  
-      
+    In.getline(buffer,128,'\n');
+
+
     if(NULL==(Temperature=new float[iterperyear])) {                                // rk, the current structure of code suppose that environment is periodic (a period = a year), if one want to make climate vary, with interannual variation and climate change along the simulation, one just need to provide the full climate input of the whole simulation (ie number of columns=iter and not iterperyear) and change iterperyear by nbiter here.
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc Temperature" << endl;
@@ -1866,7 +1930,7 @@ cout << S[2].s_name << S[2].s_wsg << endl;
     
     for (int i=0; i<iterperyear; i++) In >> Temperature[i];
     In.getline(buffer,128,'\n');
-    
+
     //for (int i=0; i<iterperyear; i++) cout<< "Temperature" << i << "\t"  << Temperature[i] <<  "\t";
     //cout<<endl;
     
@@ -1879,7 +1943,7 @@ cout << S[2].s_name << S[2].s_wsg << endl;
     
     //for (int i=0; i<iterperyear; i++) cout<< "DailyMaxTemperature" << i << "\t"  << DailyMaxTemperature[i] << "\t";
     //cout<<endl;
-    
+
     if(NULL==(NightTemperature=new float[iterperyear])) {
         cerr<<"!!! Mem_Alloc\n";
         cout<<"!!! Mem_Alloc NightTemperature" << endl;
@@ -2441,6 +2505,7 @@ void UpdateField() {
         }
     }
     
+
     /*  for(site=0;site<sites;site++)       Trunks shade the cells in which they are
      T[site].TrunkLAI();*/
     
@@ -2513,7 +2578,7 @@ void UpdateField() {
         if(!mpi_rank || S[spp].s_nbind*sites > 50000){
             for(spp=1;spp<=numesp;spp++) {                              /* External seed rain: constant flux from the metacommunity */
                 for(int ii=0;ii<S[spp].s_nbext;ii++){
-                    site = genrand2i()%sites;
+		  site = genrand2i()%sites;  // generates a random number up to sites
                     if(S[spp].s_Seed[site]!=1)
                         S[spp].s_Seed[site] = 1; /* check for optimization */
                 }
@@ -2521,8 +2586,7 @@ void UpdateField() {
         }
     }
 #endif
-    
-    
+
 #ifdef MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -2570,8 +2634,8 @@ void UpdateField() {
  ####	and death of trees  ####
  ##############################*/
 
-void UpdateTree() {
-    
+void UpdateTree() {    
+
     int site,spp;
     float flux;
     
@@ -2727,7 +2791,6 @@ void UpdateTree() {
     
 }
 
-
 /******************************
  *** Treefall gap formation ***
  ******************************/
@@ -2764,7 +2827,6 @@ void UpdateTreefall(){
 #endif
         }
 }
-
 
 
 /*###############################################

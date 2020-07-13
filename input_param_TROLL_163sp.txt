@@ -15,8 +15,8 @@
 0.012	0.018	0.042	0.087	0.175	0.304	0.445	0.569	0.672	0.767	0.856	0.915	0.961	0.986	1.000	0.985	0.952	0.908	0.863	0.820	0.767	0.699	0.611	0.498   /* normalized daily VPD course (from 7am to 7pm, with a half-hour time-step */
 0.768	0.776	0.795	0.820	0.851	0.884	0.912	0.934	0.950	0.966	0.980	0.989	0.997	0.999	1.000	0.9996	0.990	0.982	0.974	0.966	0.957	0.945	0.929	0.906   /* normalized daily T course (from 7am to 7pm, with a half-hour time-step */
 ###	Characters shared by species											
-0.9	/* klight # light attenuation in the canopy Beer-Lambert */
-0.06	/* phi # quantum yield (in micromol C/micromol photon) */											
+0.5	/* klight # light attenuation in the canopy Beer-Lambert */
+0.06	/* phi # quantum yield (in micromol C/micromol photon) */
 3.77	/* g1 # stomatal conductance # added by SParker 12/12/19 */
 0.1	/* vC  # variance of the flexion moment */											
 0.01	/* DBH0 # initial dbh (m) */											
@@ -33,8 +33,11 @@
 0.035	/* minimal death rate
 0.035	/* m1 (slope of death rate)
 360	/* atmospheric CO2 concentration in micromol/mol */
-					
-###	Species description											
+15 /* NDD Radius in m */
+0.5 /* NDD relative strength in recruitment */
+0. /* NDD relative strength in mortality */			
+
+###	Species description						
 ****	Nmass	LMA	wsg	dmax	hmax	ah	tmax	Freg	distgr	Pmass	g1
 Oxandra_asbeckii	0.0202	89.68	0.782	0.18	39.54	0.244	1	0.0901557838912827	40	0.00037	5.44284734790579
 Lecythis_persistens	0.0189	130.09	0.686	0.49	55.82	0.371	1	0.0683902331234118	40	5e-04	10.6547960099305

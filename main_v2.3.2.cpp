@@ -1432,7 +1432,7 @@ void Tree::Fluxh(int h) {
     }
     
     t_OccupyLayerVox = count;
-    if(t_from_Data)cout << "t_PPFD: " << t_PPFD << " h: " << h << " liana: " << t_s->s_liana << " Tot: " << t_TotLayerVox << " count: " << count << " lai_sum: " << lai_sum  << endl;
+
 }
 
 
@@ -1547,6 +1547,9 @@ void Tree::Growth() {
     
     t_NPP = 0.75*(t_GPP - 1.5*(t_Rday+t_Rnight+t_Rstem));
     /* Rleaf=Rday+Rnight is multiplied by 1.5 to also account for fine root respiration (cf as in Fyllas et al 2014 and Malhi 2012); Rstem is multiplied by 1.5 to account for coarse root respiration (according to the shoot root biomass ratio of 0.2 - Jérôme's paper in prep- and also to branch respiration (Meir & Grace 2002, Cavaleri 2006, Asao 2005). */
+
+    if(t_from_Data)cout << "Height: " << t_Tree_Height << " CrownDepth: " << t_Crown_Depth << " GPP: " << t_GPP << " NPP: " << t_NPP << " leafarea: " << t_leafarea << endl;
+
     if(t_NPP<0.0){
         t_NPPneg++;
         t_NPP=0.0;
@@ -1582,6 +1585,7 @@ void Tree::Growth() {
         if (t_site==120090) OutputTreeStandard(output[15]);
         if (t_site==150667) OutputTreeStandard(output[16]);
     }
+
 }
 
 /*####################################################
@@ -1632,7 +1636,13 @@ void Tree::UpdateLeafDynamics() {
 void LianaStem::LianaLeafDynamics(){
   // Spread over top only.
 
-  ls_t.t_dens = ls_t.t_leafarea / ls_t.t_TotLayerVox;
+  float leaf_ratio = ls_t.t_leafarea/ls_t.t_TotLayerVox;
+  if(leaf_ratio <= 1.0){
+    ls_t.t_dens = leaf_ratio;
+  }else{
+    ls_t.t_dens = 1.0;
+    ls_t.t_leafarea = ls_t.t_dens * ls_t.t_TotLayerVox;
+  }
 
   /* Identify which pixels are occupied by the liana */
   int center_x = ls_host->t_site/cols; 

@@ -4,7 +4,7 @@
 ###	GENERAL PARAMETERS
 400	/* cols # nb of columns */
 400	/* rows # nb of rows  */
-12	/* nbiter # total nb of timesteps */
+36	/* nbiter # total nb of timesteps */
 12	/* number of iteration per year */
 1	/* NV # vertical nb of cells (nb per m) */
 1	/* NH # horizontal nb of cells (nb per m) */

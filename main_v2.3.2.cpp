@@ -165,6 +165,8 @@ deltaR,                     /* NDD strength parameter in recruitment */
 deltaD,                     /* NDD strength parameter in deathrate */
 BAtot;
 
+float maxdens;
+
 
 /*********************************************/
 /* Environmental variables of the simulation */
@@ -1199,18 +1201,23 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   /* Initialize the stem like a tree */
   ls_t.BirthFromData(S,nume,hsite,ldbh);
 
-  /* Overwrite with information from forest file */
-  ls_t.t_Tree_Height = ls_host->t_Tree_Height;
-  ls_t.t_Crown_Radius = ls_host->t_Crown_Radius;
-  ls_t.t_Crown_Depth = ls_host->t_Crown_Depth;
-  ls_t.t_dbh = ldbh;
-
   /* Identify which pixels are occupied by the liana */
   int center_x = ls_host->t_site/cols; 
   int center_y = ls_host->t_site%cols;
-  int crown_r = (int) (ls_t.t_Crown_Radius);
+  int crown_r = (int) (ls_host->t_Crown_Radius);
   int crown_top = (int) (ls_host->t_Tree_Height)+1;
   int crown_bot = (int) (ls_host->t_Tree_Height - ls_host->t_Crown_Depth)+1;
+
+  /* Overwrite with information from forest file */
+  float can_bot = ls_host->t_Tree_Height - ls_host->t_Crown_Depth;
+  if(crown_top > crown_bot){
+    ls_t.t_Tree_Height = 1.0 * (int)(can_bot) + 1.0;
+  }else{
+    ls_t.t_Tree_Height = ls_host->t_Tree_Height;
+  }
+  ls_t.t_Crown_Radius = 0.5;
+  ls_t.t_Crown_Depth = ls_t.t_Tree_Height - can_bot;
+  ls_t.t_dbh = ldbh;
 
   ls_t.t_leafarea = 0.;
   int icount = 0;
@@ -1221,9 +1228,9 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
       int diffx = row - center_x;
       if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	for(int hh=crown_bot;hh<=crown_top;hh++){
-	  if(hh == crown_top){
+	  if(hh == crown_bot && col == center_y && row == center_x){
 	    float tree_LADens_loss = replace_frac * ls_host->t_densVox.at(icount);
-	    float liana_LA_gain = tree_LADens_loss *ls_host->t_s->s_LMA / ls_t.t_s->s_LMA *
+	    float liana_LA_gain = tree_LADens_loss *
 	      (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
 	    ls_laidens[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = liana_LA_gain;
 	    ls_t.t_leafarea += liana_LA_gain;
@@ -1252,7 +1259,7 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
      (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height))*replace_frac);
 
   cout << "Adjusted Tree leaf area: " << ls_host->t_leafarea << " t_dens: " << ls_host->t_densVox.at(13) << endl;
-
+  exit(0);
 }
 
 
@@ -2166,6 +2173,7 @@ int main(int argc,char *argv[]) {
         if(!out2) cerr<< "ERROR with info file"<< endl;
     }
     Initialise();           /* Read global parameters */
+    maxdens = dens;
     AllocMem();             /* Memory allocation */
     
     if(_FromData){

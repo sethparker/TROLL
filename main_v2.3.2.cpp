@@ -880,7 +880,6 @@ public:
   std::vector<int> t_CanX;
   std::vector<int> t_CanY;
   std::vector<int> t_CanZ;
-  std::vector<float> t_densVox;
 
   int t_TotLayerVox;
     
@@ -1082,7 +1081,22 @@ void Tree::Birth(Species *S, int nume, int site0) {
 	int diffx = row - center_x;
 	if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	  for(int hh=crown_bot;hh<=crown_top;hh++){
-	    t_densVox.push_back(t_dens);
+	    if(crown_top == crown_bot){
+	      t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * t_Crown_Depth;
+	    }else{
+	      if(hh == crown_bot){
+		t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * (
+		  1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		  (t_Tree_Height - t_Crown_Depth));
+	      }else{
+		if(hh == crown_top){
+		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
+		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		}else{
+		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens;
+		}
+	      }
+	    }
 	  }
 	}
       }
@@ -1168,7 +1182,22 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
 	int diffx = row - center_x;
 	if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	  for(int hh=crown_bot;hh<=crown_top;hh++){
-	    t_densVox.push_back(t_dens);
+	    if(crown_top == crown_bot){
+	      t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * t_Crown_Depth;
+	    }else{
+	      if(hh == crown_bot){
+		t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * (
+									    1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		  (t_Tree_Height - t_Crown_Depth));
+	      }else{
+		if(hh == crown_top){
+		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
+		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		}else{
+		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens;
+		}
+	      }
+	    }
 	  }
 	}
       }
@@ -1184,7 +1213,7 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
     (t_s->s_nbind)++;
     nblivetrees++;
 
-    cout << "Tree leaf area: " << t_leafarea << " " << " t_TotLayerVox: " << t_TotLayerVox << " t_Crown_Depth: " << t_Crown_Depth << " t_dens: " << t_densVox.at(0) << endl;
+    cout << "Tree leaf area: " << t_leafarea << " " << " t_TotLayerVox: " << t_TotLayerVox << " t_Crown_Depth: " << t_Crown_Depth << endl;
 
 }
 
@@ -1231,12 +1260,11 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
       if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	for(int hh=crown_bot;hh<=crown_top;hh++){
 	  if(hh == crown_bot && col == center_y && row == center_x){
-	    float tree_LADens_loss = replace_frac * ls_host->t_densVox.at(icount);
-	    float liana_LA_gain = tree_LADens_loss * ls_t.t_Crown_Depth;
-	    ls_t.t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = liana_LA_gain;
-	    ls_t.t_leafarea += liana_LA_gain;
-	    ls_host->t_densVox.at(icount) -= tree_LADens_loss;
-	    ls_host->t_leafarea -= liana_LA_gain;
+	    float tree_LA_loss = replace_frac * ls_host->t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX];
+	    ls_t.t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] += tree_LA_loss;
+	    ls_t.t_leafarea += tree_LA_loss;
+	    ls_host->t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] -= tree_LA_loss;
+	    ls_host->t_leafarea -= tree_LA_loss;
 	  }
 	  icount++;
 	}
@@ -1336,28 +1364,28 @@ void Tree::CalcLAI() {
                 if(xx*xx+yy*yy<=crown_r*crown_r){  // check whether voxel is within crown
 		  site=col+cols*row+SBORD;
 		  if(crown_top-crown_base == 0) {
-		    LAI3D[crown_top][site] += t_densVox.at(icount) * t_Crown_Depth;
-		    t_leafareaLayer[0] += t_dens * t_Crown_Depth;
+		    LAI3D[crown_top][site] += t_LAvox[0][CRMAX-yy][CRMAX-xx];
+		    t_leafareaLayer[0] += t_LAvox[0][CRMAX-yy][CRMAX-xx];;
 		    icount++;
 		    //t_lianavolume += LIANALEAF[crown_top][site]/t_s->s_LMA*t_Crown_Depth;
 		  }
 		  else{
-		    LAI3D[crown_base][site] += t_densVox.at(icount) * (crown_base-t_Tree_Height+t_Crown_Depth);
-		    t_leafareaLayer[0] += t_densVox.at(icount) * (crown_base-t_Tree_Height+t_Crown_Depth);
+		    LAI3D[crown_base][site] += t_LAvox[0][CRMAX-yy][CRMAX-xx];
+		    t_leafareaLayer[0] += t_LAvox[0][CRMAX-yy][CRMAX-xx];;
 		    icount++;
 		    //t_lianavolume += LIANALEAF[crown_base][site]/t_s->s_LMA * (crown_base-t_Tree_Height+t_Crown_Depth);
 
 		    if(crown_top-crown_base>=2){
 		      for(int h=crown_base+1;h <= crown_top-1;h++){
-			LAI3D[h][site] += t_densVox.at(icount);
-			t_leafareaLayer[h-crown_base] += t_densVox.at(icount);
+			LAI3D[h][site] += t_LAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
+			t_leafareaLayer[h-crown_base] += t_LAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
 			//t_lianavolume += LIANALEAF[h][site]/t_s->s_LMA;
 			icount++;
 		      }
 		    }
 
-		    LAI3D[crown_top][site] += t_densVox.at(icount)*(t_Tree_Height-crown_top+1);
-		    t_leafareaLayer[crown_top-crown_base] += t_densVox.at(icount)*(t_Tree_Height-crown_top+1);
+		    LAI3D[crown_top][site] += t_LAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
+		    t_leafareaLayer[crown_top-crown_base] += t_LAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
 		    icount++;
 		    //t_lianavolume += LIANALEAF[crown_top][site]/t_s->s_LMA * (t_Tree_Height-crown_top+1);
 		  }
@@ -1686,7 +1714,7 @@ void Tree::UpdateLeafDynamics() {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	    for(int hh=crown_bot;hh<=crown_top;hh++){
-	      t_densVox.at(icount) *= change_ratio;
+	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= change_ratio;
 	      icount++;
 	    }
 	  }

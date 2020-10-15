@@ -1138,7 +1138,7 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
     // main differences: dbh is given, related parameters are not set to fixed initial values, but derived through allometries
     // for comments regarding allometries and t_leafarea cf. Tree::Growth
     // for comments regarding everything else cf. Tree::Birth
-    
+
     t_site = site0;
     t_sp_lab = nume;
     t_NPPneg=0;
@@ -1186,9 +1186,9 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
 	      t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * t_Crown_Depth;
 	    }else{
 	      if(hh == crown_bot){
-		t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * (
-									    1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
-		  (t_Tree_Height - t_Crown_Depth));
+		t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
+		  (1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		   (t_Tree_Height - t_Crown_Depth));
 	      }else{
 		if(hh == crown_top){
 		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
@@ -2392,24 +2392,6 @@ void Initialise() {
     }
     
     
-    /*** Initialization of trees ***/
-    /*******************************/
-    
-    if(NULL==(T=new Tree[sites])) {
-        cerr<<"!!! Mem_Alloc\n";
-        cout<<"!!! Mem_Alloc Tree" << endl;
-    }
-    
-    
-    /*** Initialization of lianas ***/
-    /*******************************/
-        
-    if(NULL==(L=new Liana[sites])) {
-      cerr<<"!!! Mem_Alloc\n";
-      cout<<"!!! Mem_Alloc Liana" << endl;
-    }
-    
-
 
 
     /*** Initialization of species ***/
@@ -2879,6 +2861,24 @@ void AllocMem() {
     SBORD = cols*RMAX;
     dbhmaxincm = int(100.*d);
     
+    /*** Initialization of trees ***/
+    /*******************************/
+    
+    if(NULL==(T=new Tree[sites])) {
+        cerr<<"!!! Mem_Alloc\n";
+        cout<<"!!! Mem_Alloc Tree" << endl;
+    }
+    
+    
+    /*** Initialization of lianas ***/
+    /*******************************/
+        
+    if(NULL==(L=new Liana[sites])) {
+      cerr<<"!!! Mem_Alloc\n";
+      cout<<"!!! Mem_Alloc Liana" << endl;
+    }
+    
+
     if(!mpi_rank) {
         /*cout << "HEIGHT : " << HEIGHT
          << " RMAX : " << RMAX << " DBH : " << DBH <<"\n";

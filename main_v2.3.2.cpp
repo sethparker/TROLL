@@ -961,17 +961,17 @@ class LianaStem{
 public:
   Tree *ls_host;
   Tree ls_t;
-  float ***ls_laidens;
+  float ***ls_LA;
 
   LianaStem(int length=2*CRMAX+1, int height=CDMAX+1){
     ls_host = NULL;
-    ls_laidens = new float**[height];
+    ls_LA = new float**[height];
     for(int h=0;h<height;h++){
-      ls_laidens[h] = new float*[length];
+      ls_LA[h] = new float*[length];
       for(int icr=0;icr<length;icr++){
-  	ls_laidens[h][icr] = new float[length];
+  	ls_LA[h][icr] = new float[length];
   	for(int jcr=0;jcr<length;jcr++){
-  	  ls_laidens[h][icr][jcr]=0;
+  	  ls_LA[h][icr][jcr]=0;
   	}
       }
     }
@@ -980,11 +980,11 @@ public:
   virtual ~LianaStem(){
     for(int h=0;h<(CDMAX+1);h++){
       for(int icr=0;icr<(2*CRMAX+1);icr++){
-	delete [] ls_laidens[h][icr];
+	delete [] ls_LA[h][icr];
       }
-      delete [] ls_laidens[h];
+      delete [] ls_LA[h];
     }
-    delete [] ls_laidens;
+    delete [] ls_LA;
   };
 
   void BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nume,
@@ -1231,7 +1231,7 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
 	  if(hh == crown_bot && col == center_y && row == center_x){
 	    float tree_LADens_loss = replace_frac * ls_host->t_densVox.at(icount);
 	    float liana_LA_gain = tree_LADens_loss * ls_t.t_Crown_Depth;
-	    ls_laidens[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = liana_LA_gain;
+	    ls_LA[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = liana_LA_gain;
 	    ls_t.t_leafarea += liana_LA_gain;
 	    ls_host->t_densVox.at(icount) -= tree_LADens_loss;
 	    ls_host->t_leafarea -= liana_LA_gain;
@@ -1246,7 +1246,7 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   ls_t.t_matureLA = 0.5 * ls_t.t_leafarea;
   ls_t.t_oldLA = 0.25 * ls_t.t_leafarea;
 
-  cout << "LianaStem leaf area: " << ls_t.t_leafarea << " LianaLAIdens: " << ls_laidens[0][CRMAX][CRMAX] << endl;
+  cout << "LianaStem leaf area: " << ls_t.t_leafarea << " LianaLA: " << ls_LA[0][CRMAX][CRMAX] << endl;
 
   ls_host->t_youngLA = 0.25 * ls_host->t_leafarea;
   ls_host->t_matureLA = 0.5 * ls_host->t_leafarea;
@@ -1392,7 +1392,7 @@ void LianaStem::CalcLAI(){
       if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	int site=col+cols*row+SBORD;
 	for(int h=crown_base;h<=crown_top;h++){
-	  ldens = ls_laidens[h-crown_base][diffy+CRMAX][diffx+CRMAX];
+	  ldens = ls_LA[h-crown_base][diffy+CRMAX][diffx+CRMAX];
 	  LAI3D[h][site] += ldens;
 	  LIANALEAF[h][site] += ldens * ls_t.t_s->s_LMA;
 	  ls_t.t_leafareaLayer[h-crown_base] += ldens;
@@ -1732,7 +1732,7 @@ void LianaStem::LianaLeafDynamics(){
     for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
       int diffx = row - center_x;
       if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-  	ls_laidens[crown_top-crown_bot][diffy+CRMAX][diffx+CRMAX] = ls_t.t_dens;
+  	ls_LA[crown_top-crown_bot][diffy+CRMAX][diffx+CRMAX] = ls_t.t_dens;
       }
     }
   }

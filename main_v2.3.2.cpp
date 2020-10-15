@@ -1230,13 +1230,11 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
 	for(int hh=crown_bot;hh<=crown_top;hh++){
 	  if(hh == crown_bot && col == center_y && row == center_x){
 	    float tree_LADens_loss = replace_frac * ls_host->t_densVox.at(icount);
-	    float liana_LA_gain = tree_LADens_loss *
-	      (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
+	    float liana_LA_gain = tree_LADens_loss * ls_t.t_Crown_Depth;
 	    ls_laidens[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = liana_LA_gain;
 	    ls_t.t_leafarea += liana_LA_gain;
 	    ls_host->t_densVox.at(icount) -= tree_LADens_loss;
-	    ls_host->t_leafarea -= tree_LADens_loss *
-	      (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
+	    ls_host->t_leafarea -= liana_LA_gain;
 	  }
 	  icount++;
 	}
@@ -1248,17 +1246,15 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   ls_t.t_matureLA = 0.5 * ls_t.t_leafarea;
   ls_t.t_oldLA = 0.25 * ls_t.t_leafarea;
 
-  cout << "LianaStem leaf area: " << ls_t.t_leafarea << " LianaLAIdens: " << ls_laidens[crown_top-crown_bot][CRMAX][CRMAX] << endl;
+  cout << "LianaStem leaf area: " << ls_t.t_leafarea << " LianaLAIdens: " << ls_laidens[0][CRMAX][CRMAX] << endl;
 
   ls_host->t_youngLA = 0.25 * ls_host->t_leafarea;
   ls_host->t_matureLA = 0.5 * ls_host->t_leafarea;
   ls_host->t_oldLA = 0.25 * ls_host->t_leafarea;
 
-  ls_host->t_dens = ls_host->t_leafarea / ls_host->t_TotLayerVox / 
-    (ls_host->t_Crown_Depth - (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height)) + 
-     (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height))*replace_frac);
+  ls_host->t_dens = ls_host->t_leafarea / (ls_host->t_TotLayerVox * ls_host->t_Crown_Depth);
 
-  cout << "Adjusted Tree leaf area: " << ls_host->t_leafarea << " t_dens: " << ls_host->t_densVox.at(13) << endl;
+  cout << "Adjusted Tree leaf area: " << ls_host->t_leafarea << " t_dens: " << ls_host->t_dens << endl;
   exit(0);
 }
 

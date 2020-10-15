@@ -868,8 +868,17 @@ public:
     t_dens,                 /* tree crown average leaf density in m2/m2 -- v.2.2  */
     t_litter;               /* tree litterfall at each timestep, in g (of dry mass) -- v.2.2  */
     float *t_NDDfield;      /* _NDD */
+  //float t_lianavolume;
+  float t_flush;
+
+  float *t_leafareaLayer;
+
+  std::vector<int> t_CanX;
+  std::vector<int> t_CanY;
+  std::vector<int> t_CanZ;
+  std::vector<float> t_densVox;
+
   int t_TotLayerVox;
-  int t_OccupyLayerVox;
     
     Species *t_s;
     
@@ -878,36 +887,41 @@ public:
     t_sp_lab,               /* species label */
     t_hurt;                 /* treefall index */
 
-  float t_lianavolume; /* Volume of tree crown occupied by lianas */
     
   Tree(int n=(numesp+1)){                 /* constructor */
-        t_from_Data = 0;
-        t_sp_lab = 0;
-        t_age = 0;
-        t_hurt = 0;
-        t_NPP=t_GPP=t_Rday=t_Rnight=t_Rstem=t_PPFD=t_VPD=t_T=0.0; /* new v.2.2 */
-        
-        if(_TREEFALL){
-            t_C  = 0;
-            t_angle = 0.0;
-        }
-        if(_BASICTREEFALL) t_Ct = 0.0;
-        
-        t_dbh = t_Tree_Height = t_Crown_Radius = 0.0;
+    t_from_Data = 0;
+    t_sp_lab = 0;
+    t_age = 0;
+    t_hurt = 0;
+    t_NPP=t_GPP=t_Rday=t_Rnight=t_Rstem=t_PPFD=t_VPD=t_T=0.0; /* new v.2.2 */
 
-	if(_NDD){
-	  t_NDDfield = new float[n];
-	  for(int ii=0;ii<n;ii++) t_NDDfield[ii]=0;
-	}
-
-	t_lianavolume = 0;
-	t_TotLayerVox = 0;
-	t_OccupyLayerVox = 0;
-
-    };
+    t_flush = 0;
+    if(_TREEFALL){
+      t_C  = 0;
+      t_angle = 0.0;
+    }
+    if(_BASICTREEFALL) t_Ct = 0.0;
+    
+    t_dbh = t_Tree_Height = t_Crown_Radius = 0.0;
+    
+    //t_lianavolume = 0.;
+    
+    if(_NDD){
+      t_NDDfield = new float[n];
+      for(int ii=0;ii<n;ii++) t_NDDfield[ii]=0;
+    }
+    
+    t_leafareaLayer = new float[CDMAX];
+    for(int ii=0;ii<CDMAX;ii++)t_leafareaLayer[ii] = 0;
+    
+    t_TotLayerVox = 0;
+    
+  };
     
   virtual ~Tree() {
     if(_NDD)delete [] t_NDDfield;   /* _NDD */
+    delete [] t_leafareaLayer;
+
   };	/* destructor */
     
     
@@ -1051,6 +1065,26 @@ void Tree::Birth(Species *S, int nume, int site0) {
     t_leafarea=t_youngLA;   /* should be sum of LA young+mature+old, but the equation is correct initially */
     tempRday=0.0;
 
+    /* Identify which pixels are occupied by the tree */
+    int center_x = t_site/cols; 
+    int center_y = t_site%cols;
+    int crown_r = (int) (t_Crown_Radius);
+    int crown_top = (int) (t_Tree_Height)+1;
+    int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
+
+    for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+      int diffy = col - center_y;
+      for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	int diffx = row - center_x;
+	if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	  for(int hh=crown_bot;hh<=crown_top;hh++){
+	    t_densVox.push_back(t_dens);
+	  }
+	}
+      }
+    }
+
+
     float hrealmax=3*t_hmax * t_dbh_thresh/(3*t_dbh_thresh + 2*t_s->s_ah);
     
     t_dbhmature=t_s->s_dmax*0.5; // this correponds to the mean thresholds of tree size to maturity, according to Visser et al. 2016 Functional Ecology (suited to both understory short-statured species, and top canopy large-statured species). NOTE that if we decide to keep it as a fixed species-specific value, this could be defined as a Species calss variable, and computed once in Species::Init. -- v230
@@ -1116,7 +1150,26 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
     t_matureLA=0.5*t_leafarea;
     t_oldLA=0.25*t_leafarea;
     tempRday=0.0;
-    
+
+    /* Identify which pixels are occupied by the tree */
+    int center_x = t_site/cols; 
+    int center_y = t_site%cols;
+    int crown_r = (int) (t_Crown_Radius);
+    int crown_top = (int) (t_Tree_Height)+1;
+    int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
+
+    for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+      int diffy = col - center_y;
+      for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	int diffx = row - center_x;
+	if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	  for(int hh=crown_bot;hh<=crown_top;hh++){
+	    t_densVox.push_back(t_dens);
+	  }
+	}
+      }
+    }
+
     /* v.2.3.0 in version 2.3 and prior, fluxes were also initialized, resulting in a longer code, with multiple repetitions of the same empirical functions. It is better *NOT* to call empirical functions more than once. */
     
     float hrealmax = 3*t_hmax * t_dbh_thresh/(3*t_dbh_thresh + 2*t_s->s_ah);
@@ -1126,6 +1179,8 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
     if(_BASICTREEFALL) t_Ct = hrealmax*flor(1.0-vC*sqrt(-log(genrand2())));
     (t_s->s_nbind)++;
     nblivetrees++;
+
+    cout << "Tree leaf area: " << t_leafarea << " " << " t_TotLayerVox: " << t_TotLayerVox << " t_Crown_Depth: " << t_Crown_Depth << " t_dens: " << t_densVox.at(0) << endl;
 
 }
 
@@ -1140,7 +1195,7 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
 
   /* Set pointer to host tree */
   ls_host = T + hsite;
-  
+
   /* Initialize the stem like a tree */
   ls_t.BirthFromData(S,nume,hsite,ldbh);
 
@@ -1158,14 +1213,26 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   int crown_bot = (int) (ls_host->t_Tree_Height - ls_host->t_Crown_Depth)+1;
 
   ls_t.t_leafarea = 0.;
+  int icount = 0;
+  float replace_frac = 0.5;
   for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
     int diffy = col - center_y;
     for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
       int diffx = row - center_x;
       if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-	ls_laidens[crown_top-crown_bot][diffy+CRMAX][diffx+CRMAX] = ls_t.t_dens * 
-	  (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
-	ls_t.t_leafarea += ls_t.t_dens * (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
+	for(int hh=crown_bot;hh<=crown_top;hh++){
+	  if(hh == crown_top){
+	    float tree_LADens_loss = replace_frac * ls_host->t_densVox.at(icount);
+	    float liana_LA_gain = tree_LADens_loss *ls_host->t_s->s_LMA / ls_t.t_s->s_LMA *
+	      (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
+	    ls_laidens[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = liana_LA_gain;
+	    ls_t.t_leafarea += liana_LA_gain;
+	    ls_host->t_densVox.at(icount) -= tree_LADens_loss;
+	    ls_host->t_leafarea -= tree_LADens_loss *
+	      (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height));
+	  }
+	  icount++;
+	}
       }
     }
   }
@@ -1174,12 +1241,17 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   ls_t.t_matureLA = 0.5 * ls_t.t_leafarea;
   ls_t.t_oldLA = 0.25 * ls_t.t_leafarea;
 
-  float reduce_factor = (1.0 - (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height)) /
-			  ls_host->t_Crown_Depth);
-  ls_host->t_leafarea *= reduce_factor;
-  ls_host->t_youngLA *= reduce_factor;
-  ls_host->t_matureLA *= reduce_factor;
-  ls_host->t_oldLA *= reduce_factor;
+  cout << "LianaStem leaf area: " << ls_t.t_leafarea << " LianaLAIdens: " << ls_laidens[crown_top-crown_bot][CRMAX][CRMAX] << endl;
+
+  ls_host->t_youngLA = 0.25 * ls_host->t_leafarea;
+  ls_host->t_matureLA = 0.5 * ls_host->t_leafarea;
+  ls_host->t_oldLA = 0.25 * ls_host->t_leafarea;
+
+  ls_host->t_dens = ls_host->t_leafarea / ls_host->t_TotLayerVox / 
+    (ls_host->t_Crown_Depth - (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height)) + 
+     (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height))*replace_frac);
+
+  cout << "Adjusted Tree leaf area: " << ls_host->t_leafarea << " t_dens: " << ls_host->t_densVox.at(13) << endl;
 
 }
 
@@ -1246,42 +1318,44 @@ void Tree::CalcLAI() {
         col_trunc=t_site%cols;
         crown_base = int(t_Tree_Height-t_Crown_Depth)+1;
         crown_top = int(t_Tree_Height)+1;
+	int icount = 0;
+	for(int h=crown_base;h<=crown_top;h++){
+	  t_leafareaLayer[h-crown_base] = 0;
+	}
+	
         // loop over the tree crown
         for(col=max(0,col_trunc-crown_r);col<=min(cols-1,col_trunc+crown_r);col++) {
             for(row=max(0,row_trunc-crown_r);row<=min(rows-1,row_trunc+crown_r);row++) {
                 xx=col_trunc-col;
                 yy=row_trunc-row;
                 if(xx*xx+yy*yy<=crown_r*crown_r){  // check whether voxel is within crown
-                    site=col+cols*row+SBORD;
-                    if(crown_top-crown_base == 0) {
-		      if(LIANALEAF[crown_top][site]){
-			t_lianavolume += t_Crown_Depth;
-		      }else{
-			LAI3D[crown_top][site] += t_dens*t_Crown_Depth;
-		      }
-                    }
-                    else{
-		      if(LIANALEAF[crown_top][site]){
-			t_lianavolume += (t_Tree_Height-crown_top+1);
-		      }else{
-			LAI3D[crown_top][site] += t_dens*(t_Tree_Height-crown_top+1);
-		      }
-		      if(LIANALEAF[crown_base][site]){
-			t_lianavolume += (crown_base-t_Tree_Height+t_Crown_Depth);
-		      }else{
-			LAI3D[crown_base][site] += t_dens*(crown_base-t_Tree_Height+t_Crown_Depth);
-		      }
+		  site=col+cols*row+SBORD;
+		  if(crown_top-crown_base == 0) {
+		    LAI3D[crown_top][site] += t_densVox.at(icount) * t_Crown_Depth;
+		    t_leafareaLayer[0] += t_dens * t_Crown_Depth;
+		    icount++;
+		    //t_lianavolume += LIANALEAF[crown_top][site]/t_s->s_LMA*t_Crown_Depth;
+		  }
+		  else{
+		    LAI3D[crown_base][site] += t_densVox.at(icount) * (crown_base-t_Tree_Height+t_Crown_Depth);
+		    t_leafareaLayer[0] += t_densVox.at(icount) * (crown_base-t_Tree_Height+t_Crown_Depth);
+		    icount++;
+		    //t_lianavolume += LIANALEAF[crown_base][site]/t_s->s_LMA * (crown_base-t_Tree_Height+t_Crown_Depth);
 
-		      if(crown_top-crown_base>=2){
-			for(int h=crown_base+1;h <= crown_top-1;h++)
-			  if(LIANALEAF[h][site]){
-			    t_lianavolume += 1.;
-			  }else{
-			    LAI3D[h][site] += t_dens;    // loop over the crown depth
-			  }
+		    if(crown_top-crown_base>=2){
+		      for(int h=crown_base+1;h <= crown_top-1;h++){
+			LAI3D[h][site] += t_densVox.at(icount);
+			t_leafareaLayer[h-crown_base] += t_densVox.at(icount);
+			//t_lianavolume += LIANALEAF[h][site]/t_s->s_LMA;
+			icount++;
 		      }
-                        
-                    }
+		    }
+
+		    LAI3D[crown_top][site] += t_densVox.at(icount)*(t_Tree_Height-crown_top+1);
+		    t_leafareaLayer[crown_top-crown_base] += t_densVox.at(icount)*(t_Tree_Height-crown_top+1);
+		    icount++;
+		    //t_lianavolume += LIANALEAF[crown_top][site]/t_s->s_LMA * (t_Tree_Height-crown_top+1);
+		  }
                 }
             }
         }
@@ -1301,7 +1375,11 @@ void LianaStem::CalcLAI(){
   crown_base = int(ls_host->t_Tree_Height-ls_host->t_Crown_Depth)+1;
   crown_top = int(ls_host->t_Tree_Height)+1;
 
-  ls_t.t_lianavolume = 0.;
+  //ls_t.t_lianavolume = 0;
+
+  for(int h=crown_base;h<=crown_top;h++){
+    ls_t.t_leafareaLayer[h-crown_base] = 0;
+  }
 
   // Loop over canopy of host tree
   for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
@@ -1313,22 +1391,13 @@ void LianaStem::CalcLAI(){
 	for(int h=crown_base;h<=crown_top;h++){
 	  ldens = ls_laidens[h-crown_base][diffy+CRMAX][diffx+CRMAX];
 	  LAI3D[h][site] += ldens;
-	  LIANALEAF[h][site] += ldens;
-	  if(ldens){
-	    if(h==crown_base){
-	      ls_t.t_lianavolume += (crown_base-ls_host->t_Tree_Height+ls_host->t_Crown_Depth);
-	    }else{
-	      if(h==crown_top){
-		ls_t.t_lianavolume += (ls_host->t_Tree_Height-crown_top+1);
-	      }else{
-		ls_t.t_lianavolume += 1;
-	      }
-	    }
-	  }
+	  LIANALEAF[h][site] += ldens * ls_t.t_s->s_LMA;
+	  ls_t.t_leafareaLayer[h-crown_base] += ldens;
 	}
       }
     }
   }
+  cout << "layer: " << ls_t.t_leafareaLayer[crown_top-crown_base] << " " << ls_t.t_leafarea << endl;
 }
 
 
@@ -1361,34 +1430,32 @@ void Tree::Fluxh(int h) {
     t_VPD  = 0.0;
     t_T    = 0.0;
     t_TotLayerVox = 0;
-    t_OccupyLayerVox = 0;
 
     float absorb_below=0.;
     radius_int = int(t_Crown_Radius);
 
     if(radius_int == 0) {
       t_TotLayerVox++;
-      if( (!t_s->s_liana && !LIANALEAF[h][t_site+SBORD]) || (t_s->s_liana && LIANALEAF[h][t_site+SBORD])){
-        count=1;
-	// Layer leaf area density
-	if (h -1 < HEIGHT) {
-	  absorb_below = minf(LAI3D[h-1][t_site+SBORD],19.5); // cumulative LAI looking upward from height h-1
-	  layer_lai = LAI3D[h-1][t_site+SBORD];
-	}
-        if (h < HEIGHT) {
-	  absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
-	  layer_lai -= LAI3D[h][t_site+SBORD];
-	}
-	
-        // absorb = 0.0 by default
-        int intabsorb=int(absorb*20.0);  // LAD * 20
-        int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
-	
-	t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]); // umol/m2/s
-	if(layer_lai > 0.)t_PPFD *= 1./layer_lai;
-        t_VPD  = VPDmax*LookUp_VPD[intabsorb];
-        t_T    = tmax - LookUp_T[intabsorb];
+      //if( (!t_s->s_liana && !LIANALEAF[h][t_site+SBORD]) || (t_s->s_liana && LIANALEAF[h][t_site+SBORD])){
+
+      count=1;
+      // Layer leaf area density
+      if (h -1 < HEIGHT) {
+	absorb_below = minf(LAI3D[h-1][t_site+SBORD],19.5); // cumulative LAI looking upward from height h-1
+	layer_lai = LAI3D[h-1][t_site+SBORD];
       }
+      if (h < HEIGHT) {
+	absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
+	layer_lai -= LAI3D[h][t_site+SBORD];
+      }
+	
+      int intabsorb=int(absorb*20.0);  // LAD * 20
+      int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
+      
+      t_PPFD = Wmax*(LookUp_flux[intabsorb] - LookUp_flux[intabsorb_below]); // umol/m2/s
+      if(layer_lai > 0.)t_PPFD *= 1./layer_lai;
+      t_VPD  = VPDmax*LookUp_VPD[intabsorb];
+      t_T    = tmax - LookUp_T[intabsorb];
     }
     else {
         int row0,col0;
@@ -1402,27 +1469,25 @@ void Tree::Fluxh(int h) {
                 if(xx*xx+yy*yy <= radius_int*radius_int) {
                     //is the voxel within crown?
 		  t_TotLayerVox++;
-		  if( (!t_s->s_liana && !LIANALEAF[h][col+cols*row+SBORD]) || 
-			(t_s->s_liana && LIANALEAF[h][col+cols*row+SBORD])){
-		      count++;
-		      absorb = 0;
-		      absorb_below = 0;
-		      if (h+1 < HEIGHT){
-			absorb = minf(LAI3D[h+1][col+cols*row+SBORD],19.5);
-			lai_sum -= LAI3D[h+1][col+cols*row+SBORD];
-		      }
-		      if (h < HEIGHT) {
-			absorb_below = minf(LAI3D[h][col+cols*row+SBORD],19.5);
-			lai_sum += LAI3D[h][col+cols*row+SBORD];
-		      }
-		      int intabsorb=int(absorb*20.0);
-		      int intabsorb_below=int(absorb_below*20.0);
-		      t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);
-		      t_VPD  += VPDmax*LookUp_VPD[intabsorb];
-		      t_T    += tmax - LookUp_T[intabsorb];
-		    }
-                }
-            }
+		  count++;
+		  absorb = 0;
+		  absorb_below = 0;
+		  if (h+1 < HEIGHT){
+		    absorb = minf(LAI3D[h+1][col+cols*row+SBORD],19.5);
+		    lai_sum -= LAI3D[h+1][col+cols*row+SBORD];
+		  }
+		  if (h < HEIGHT) {
+		    absorb_below = minf(LAI3D[h][col+cols*row+SBORD],19.5);
+		    lai_sum += LAI3D[h][col+cols*row+SBORD];
+		  }
+
+		  int intabsorb=int(absorb*20.0);
+		  int intabsorb_below=int(absorb_below*20.0);
+		  t_PPFD += Wmax*(LookUp_flux[intabsorb]-LookUp_flux[intabsorb_below]);
+		  t_VPD  += VPDmax*LookUp_VPD[intabsorb];
+		  t_T    += tmax - LookUp_T[intabsorb];
+		}
+	    }
         }
 	if(lai_sum > 0.)t_PPFD *= 1.0/lai_sum;
 	if(count > 0){
@@ -1431,8 +1496,6 @@ void Tree::Fluxh(int h) {
 	}
     }
     
-    t_OccupyLayerVox = count;
-
 }
 
 
@@ -1487,31 +1550,9 @@ void Tree::Growth() {
 	    // during this timestep.
 	    effLA *= (0.5 * t_leafarea + 0.5 * t_matureLA);
 	    if(crown_base != crown_top){ // If there is more than one layer
-	      float norm_fac = 1.0*(t_Crown_Depth - crown_top + crown_base + 1);
-	      if(crown_top-crown_base>=2){
-		for(int hh=crown_base+1;hh <= crown_top-1;hh++)
-		  norm_fac += 1.0;    // loop over the crown depth
-	      }
-	      // norm_fac = Volume / cross-sectional area
-	      float prop_lai_layer = 0.;
-	      float voxvolume = 0.;
-	      if(!t_s->s_liana){
-		voxvolume = norm_fac * t_TotLayerVox - t_lianavolume;
-		if(voxvolume > 0)prop_lai_layer = float(t_OccupyLayerVox) / voxvolume;
-	      }else{
-		if(t_lianavolume > 0)prop_lai_layer = float(t_OccupyLayerVox) / t_lianavolume;
-	      }
-	      if(h == crown_top){
-		effLA *= (t_Tree_Height - crown_top + 1)*prop_lai_layer;
-		//cout << crown_base << " " << h << " " << crown_top << " " << (t_Tree_Height-crown_top + 1)/norm_fac << endl;
-	      }else{
-		if(h == crown_base){
-		  effLA *= (crown_base-t_Tree_Height+t_Crown_Depth)*prop_lai_layer;
-		  //cout << crown_base << " " << h << " " << crown_top << " " << (crown_base-t_Tree_Height+t_Crown_Depth)/norm_fac << endl;
-		}else{
-		  effLA *= prop_lai_layer;
-		}
-	      }
+	      float prop_lai_layer = t_leafareaLayer[h-crown_base] / t_leafarea;
+	      effLA *= prop_lai_layer;
+	      if(t_from_Data)cout << "h: " << h << " proplailayer: " << prop_lai_layer << " layer: " << t_leafareaLayer[h-crown_base] << " totleafarea: " << t_leafarea << endl;
 	    }
 	    // The code above computes the proportion of leaf area in this level.
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
@@ -1594,19 +1635,25 @@ void Tree::Growth() {
  #####################################################*/
 
 void Tree::UpdateLeafDynamics() {
-    
+  
     // make a standalone function for leaf dynamics & litter?
     
     /**** NPP allocation to leaves *****/                                       /* rk: in this current scheme of leaf demography and phenology in three leaf age classes: only the old leaves generate treefall, and the dynamic of leaves cycle is generated by the dynamic of NPP, with a total leaf biomass varying - as opposed to De Weirdt et al 2012 in ORCHIDEE, but as in Wu et al 2016 but importantly without prescribing litterfall- */
     
   float flush=2.0*t_NPP*falloccanopy*0.68/(t_s->s_LMA);                           /* this is to convert the NPP allocated to leaves (falloccanopy is the fraction of biomass assumed to be alloacted to canopy (leaves+reproductive organs+twigs) at each timestep - Malhi et al 2011-, 68% of which is allocated to leaves - chave et al 2008, Chave et al 2010-), in new leaf area (2 is to convert carbon mass in biomass and LMA to convert leaf biomass into leaf area).*/
     
+  if(t_s->s_liana){
+    flush = flush / falloccanopy * 0.45;
+  }
+
+  t_flush = flush;
     /* litter module */
     
     t_litter=t_oldLA/(t_s->s_time_old);
     
     /* leaf cycle */
     
+    float old_leafarea = t_leafarea;
     float new_mature = t_youngLA/(t_s->s_time_young);
     float new_old    = t_matureLA/(t_s->s_time_mature);
     t_youngLA  += flush - new_mature;
@@ -1618,38 +1665,64 @@ void Tree::UpdateLeafDynamics() {
     
     t_litter*=t_s->s_LMA;
     
-    float crownvolume=1;
-    if(t_s->s_liana){
-      //LianaLeafDynamics();
-      //crownvolume = t_lianavolume;
-    }else{
-      crownvolume=t_TotLayerVox*t_Crown_Depth*LV-t_lianavolume;
-      if(crownvolume > 0){
-	t_dens=t_leafarea/crownvolume;
-      }else{
-	t_dens = 0.;
+    if(!t_s->s_liana){
+      float change_ratio = t_leafarea / old_leafarea;
+
+      int center_x = t_site/cols; 
+      int center_y = t_site%cols;
+      int crown_r = (int) (t_Crown_Radius);
+      int crown_top = (int) (t_Tree_Height)+1;
+      int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
+      int icount=0;
+
+      for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	int diffy = col - center_y;
+	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	  int diffx = row - center_x;
+	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	    for(int hh=crown_bot;hh<=crown_top;hh++){
+	      t_densVox.at(icount) *= change_ratio;
+	      icount++;
+	    }
+	  }
+	}
       }
     }
-    //t_dens=t_leafarea/crownvolume;
 }
 
 void LianaStem::LianaLeafDynamics(){
   // Spread over top only.
 
+  int crown_top = (int) (ls_host->t_Tree_Height)+1;
+  int crown_bot = (int) (ls_host->t_Tree_Height - ls_host->t_Crown_Depth)+1;
+
+  // Adjust the flush
+  //float adjusted_flush = 0.1 / (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height))/ (ls_host->t_Tree_Height - (int)(ls_host->t_Tree_Height)) / ls_host->t_s->s_LMA/ls_host->t_s->s_LMA;
+  float flush_capacity = 0.5 * ls_host->t_leafareaLayer[crown_top-crown_bot] * 
+    ls_host->t_s->s_LMA / ls_t.t_s->s_LMA;
+  float permitted_flush = maxf(0,minf(flush_capacity,ls_t.t_flush));
+
+  cout << "Target: " << ls_t.t_flush << " Capacity: " << flush_capacity << " Permitted: " << permitted_flush << endl;
+
+  //permitted_flush *= ls_t.t_flush;
+  ls_t.t_leafarea -= ls_t.t_flush;
+  ls_t.t_youngLA -= ls_t.t_flush;
+  ls_t.t_leafarea += permitted_flush;
+  ls_t.t_youngLA += permitted_flush;
+
   float leaf_ratio = ls_t.t_leafarea/ls_t.t_TotLayerVox;
-  if(leaf_ratio <= 1.0){
+
+  //if(leaf_ratio <= 1.0){
     ls_t.t_dens = leaf_ratio;
-  }else{
-    ls_t.t_dens = 1.0;
-    ls_t.t_leafarea = ls_t.t_dens * ls_t.t_TotLayerVox;
-  }
+    //}else{
+    //ls_t.t_dens = 1.0;
+    //ls_t.t_leafarea = ls_t.t_dens * ls_t.t_TotLayerVox;
+    //}
 
   /* Identify which pixels are occupied by the liana */
   int center_x = ls_host->t_site/cols; 
   int center_y = ls_host->t_site%cols;
   int crown_r = (int) (ls_t.t_Crown_Radius);
-  int crown_top = (int) (ls_host->t_Tree_Height)+1;
-  int crown_bot = (int) (ls_host->t_Tree_Height - ls_host->t_Crown_Depth)+1;
 
   for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
     int diffy = col - center_y;
@@ -1665,7 +1738,7 @@ void LianaStem::LianaLeafDynamics(){
 
 void Tree::UpdateTreeBiometry(){
     /* New standalone function in v.2.3.0 */
-    
+  return;    
     /* Tree dbh increment */
     t_ddbh=0.0;
     float volume=2.0*t_NPP/(t_s->s_wsg) * fallocwood * 1.0e-6;
@@ -2823,7 +2896,7 @@ void AllocMem() {
       }
     }
 
-    
+
     if (NULL==(Thurt[0]=new unsigned short[3*sites]))                                       /* Field for treefall impacts */
         cerr<<"!!! Mem_Alloc\n";
     for(i=1;i<3;i++)
@@ -2896,7 +2969,7 @@ void BirthInit() {
  ###############################################*/
 
 void Evolution() {
-    
+
     UpdateField();                                          /* Update light fields and seed banks */
     UpdateTree();                                           /* Update trees */
 
@@ -2955,7 +3028,7 @@ void UpdateField() {
       }
     }
 
-    for(site=0;site<sites;site++)T[site].t_lianavolume = 0.;
+    //for(site=0;site<sites;site++)T[site].t_lianavolume = 0;
 
     for(site=0;site<sites;site++){
       /* Calculate total liana leaf amount in each voxel */
@@ -2966,7 +3039,6 @@ void UpdateField() {
       /* Each tree contribues to LAI3D */
       T[site].CalcLAI();
     }
-
 
     for(haut=HEIGHT;haut>0;haut--){                                 /* LAI is computed by summing LAI from the canopy top to the ground */
         for(site=0;site<sites;site++){

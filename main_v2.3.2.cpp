@@ -874,6 +874,8 @@ public:
   float t_flush;
 
   float *t_leafareaLayer;
+  float ***t_LAvox;
+
 
   std::vector<int> t_CanX;
   std::vector<int> t_CanY;
@@ -890,7 +892,7 @@ public:
     t_hurt;                 /* treefall index */
 
     
-  Tree(int n=(numesp+1)){                 /* constructor */
+  Tree(int n=(numesp+1),int length=2*CRMAX+1, int height=CDMAX+1){                 /* constructor */
     t_from_Data = 0;
     t_sp_lab = 0;
     t_age = 0;
@@ -918,11 +920,29 @@ public:
     
     t_TotLayerVox = 0;
     
+    t_LAvox = new float**[height];
+    for(int h=0;h<height;h++){
+      t_LAvox[h] = new float*[length];
+      for(int icr=0;icr<length;icr++){
+  	t_LAvox[h][icr] = new float[length];
+  	for(int jcr=0;jcr<length;jcr++){
+  	  t_LAvox[h][icr][jcr]=0;
+  	}
+      }
+    }
+
   };
     
   virtual ~Tree() {
     if(_NDD)delete [] t_NDDfield;   /* _NDD */
     delete [] t_leafareaLayer;
+    for(int h=0;h<(CDMAX+1);h++){
+      for(int icr=0;icr<(2*CRMAX+1);icr++){
+	delete [] t_LAvox[h][icr];
+      }
+      delete [] t_LAvox[h];
+    }
+    delete [] t_LAvox;
 
   };	/* destructor */
     

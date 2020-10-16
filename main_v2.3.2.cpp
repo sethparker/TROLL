@@ -249,7 +249,6 @@ m1;                 /* deathrate-wsg slope -- new v.2.2 */
 
 
 float **LAI3D(0);   /* leaf density (per volume unit) */
-float **LIANALEAF(0);
 unsigned short *Thurt[3];            /* Treefall field */
 
 int    *SPECIES_GERM (0);
@@ -1230,7 +1229,14 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   ls_host = T + hsite;
 
   /* Initialize the stem like a tree */
-  ls_t.BirthFromData(S,nume,hsite,ldbh);
+  ls_t.t_site = hsite;
+  ls_t.t_sp_lab = nume;
+  ls_t.t_NPPneg=0;
+  ls_t.t_s = S+ls_t.t_sp_lab;
+  ls_t.t_age = 1;          //value not correct, but generally not problematic, used mainly as diagnostic variable and as indicator of whether tree is alive or not (death itself is independent of age), BUT: use as diagnostic variable cannot be ensured anymore and be careful if conditioning on t_age (e.g. for maturation)
+  ls_t.t_from_Data = 1;    //indicates that tree stems from data (and therefore t_age could not be used, etc.)
+  ls_t.t_hurt = 0;
+  ls_t.t_ddbh=0.0;
 
   /* Identify which pixels are occupied by the liana */
   int center_x = ls_host->t_site/cols; 
@@ -1285,7 +1291,7 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   ls_host->t_dens = ls_host->t_leafarea / (ls_host->t_TotLayerVox * ls_host->t_Crown_Depth);
 
   cout << "Adjusted Tree leaf area: " << ls_host->t_leafarea << " t_dens: " << ls_host->t_dens << endl;
-  exit(0);
+
 }
 
 
@@ -1341,8 +1347,6 @@ void Tree::CalcLAI() {
         col,row,
         site;
         
-	/* If you want liana leaves to replace tree leaves, use the global variable LIANALEAF.
-	 It is indexed exactly like LAI3D. */
 	/* Here, I have implemented a simple rule, only for testing: the presence of any
 	   liana leaves means that there are no tree leaves in a voxel */
 
@@ -1367,19 +1371,15 @@ void Tree::CalcLAI() {
 		    LAI3D[crown_top][site] += t_LAvox[0][CRMAX-yy][CRMAX-xx];
 		    t_leafareaLayer[0] += t_LAvox[0][CRMAX-yy][CRMAX-xx];;
 		    icount++;
-		    //t_lianavolume += LIANALEAF[crown_top][site]/t_s->s_LMA*t_Crown_Depth;
 		  }
 		  else{
 		    LAI3D[crown_base][site] += t_LAvox[0][CRMAX-yy][CRMAX-xx];
 		    t_leafareaLayer[0] += t_LAvox[0][CRMAX-yy][CRMAX-xx];;
 		    icount++;
-		    //t_lianavolume += LIANALEAF[crown_base][site]/t_s->s_LMA * (crown_base-t_Tree_Height+t_Crown_Depth);
-
 		    if(crown_top-crown_base>=2){
 		      for(int h=crown_base+1;h <= crown_top-1;h++){
 			LAI3D[h][site] += t_LAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
 			t_leafareaLayer[h-crown_base] += t_LAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
-			//t_lianavolume += LIANALEAF[h][site]/t_s->s_LMA;
 			icount++;
 		      }
 		    }
@@ -1387,7 +1387,6 @@ void Tree::CalcLAI() {
 		    LAI3D[crown_top][site] += t_LAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
 		    t_leafareaLayer[crown_top-crown_base] += t_LAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
 		    icount++;
-		    //t_lianavolume += LIANALEAF[crown_top][site]/t_s->s_LMA * (t_Tree_Height-crown_top+1);
 		  }
                 }
             }
@@ -1424,7 +1423,6 @@ void LianaStem::CalcLAI(){
 	for(int h=crown_base;h<=crown_top;h++){
 	  ldens = ls_t.t_LAvox[h-crown_base][diffy+CRMAX][diffx+CRMAX];
 	  LAI3D[h][site] += ldens;
-	  LIANALEAF[h][site] += ldens * ls_t.t_s->s_LMA;
 	  ls_t.t_leafareaLayer[h-crown_base] += ldens;
 	}
       }
@@ -1469,7 +1467,6 @@ void Tree::Fluxh(int h) {
 
     if(radius_int == 0) {
       t_TotLayerVox++;
-      //if( (!t_s->s_liana && !LIANALEAF[h][t_site+SBORD]) || (t_s->s_liana && LIANALEAF[h][t_site+SBORD])){
 
       count=1;
       // Layer leaf area density
@@ -2914,19 +2911,16 @@ void AllocMem() {
     if (NULL==(LAI3D=new float*[HEIGHT+1]))                                                   /* Field 3D */
         cerr<<"!!! Mem_Alloc\n";                                                            /* Trees at the border of the simulated forest need to know the canopy occupancy by trees in the neighboring processor.*/
 
-    if (NULL==(LIANALEAF=new float*[HEIGHT+1]))cerr<<"!!! Mem_Alloc\n";
 
     for(haut=0;haut<(HEIGHT+1);haut++){                                                          /* For each processor, we define a stripe above (labelled 0) and a stripe below (1). Each stripe is SBORD in width.*/
         if (NULL==(LAI3D[haut]=new float[sites+2*SBORD]))                                   /* ALL the sites need to be updated.*/
             cerr<<"!!! Mem_Alloc\n";
 
-	if (NULL==(LIANALEAF[haut]=new float[sites+2*SBORD]))cerr<<"!!! Mem_Alloc\n";
     }
 
     for(haut=0;haut<(HEIGHT+1);haut++){
       for(int site=0;site<sites+2*SBORD;site++){
             LAI3D[haut][site] = 0.0;
-	    LIANALEAF[haut][site] = 0.0;
       }
     }
 
@@ -3058,7 +3052,6 @@ void UpdateField() {
     for(haut=0;haut<(HEIGHT+1);haut++){
       for(sbsite=0;sbsite<sites+2*SBORD;sbsite++){
             LAI3D[haut][sbsite] = 0.0;
-	    LIANALEAF[haut][sbsite] = 0.0;
       }
     }
 
@@ -3848,10 +3841,8 @@ void FreeMem () {
     int h;
     for (h=0; h<(HEIGHT+1); h++) {
         delete [] LAI3D[h];
-	delete [] LIANALEAF[h];
     }
     delete [] LAI3D;
-    delete [] LIANALEAF;
     
     int i;
     for (i=0; i<3; i++) {

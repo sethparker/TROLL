@@ -874,6 +874,9 @@ public:
 
   float *t_leafareaLayer;
   float ***t_LAvox;
+  float ***t_youngLAvox;
+  float ***t_matureLAvox;
+  float ***t_oldLAvox;
 
 
   std::vector<int> t_CanX;
@@ -919,12 +922,24 @@ public:
     t_TotLayerVox = 0;
     
     t_LAvox = new float**[height];
+    t_youngLAvox = new float**[height];
+    t_matureLAvox = new float**[height];
+    t_oldLAvox = new float**[height];
     for(int h=0;h<height;h++){
       t_LAvox[h] = new float*[length];
+      t_youngLAvox[h] = new float*[length];
+      t_matureLAvox[h] = new float*[length];
+      t_oldLAvox[h] = new float*[length];
       for(int icr=0;icr<length;icr++){
   	t_LAvox[h][icr] = new float[length];
+  	t_youngLAvox[h][icr] = new float[length];
+  	t_matureLAvox[h][icr] = new float[length];
+  	t_oldLAvox[h][icr] = new float[length];
   	for(int jcr=0;jcr<length;jcr++){
   	  t_LAvox[h][icr][jcr]=0;
+  	  t_youngLAvox[h][icr][jcr]=0;
+  	  t_matureLAvox[h][icr][jcr]=0;
+  	  t_oldLAvox[h][icr][jcr]=0;
   	}
       }
     }
@@ -937,10 +952,19 @@ public:
     for(int h=0;h<(CDMAX+1);h++){
       for(int icr=0;icr<(2*CRMAX+1);icr++){
 	delete [] t_LAvox[h][icr];
+	delete [] t_youngLAvox[h][icr];
+	delete [] t_matureLAvox[h][icr];
+	delete [] t_oldLAvox[h][icr];
       }
       delete [] t_LAvox[h];
+      delete [] t_youngLAvox[h];
+      delete [] t_matureLAvox[h];
+      delete [] t_oldLAvox[h];
     }
     delete [] t_LAvox;
+    delete [] t_youngLAvox;
+    delete [] t_matureLAvox;
+    delete [] t_oldLAvox;
 
   };	/* destructor */
     
@@ -1082,17 +1106,32 @@ void Tree::Birth(Species *S, int nume, int site0) {
 	  for(int hh=crown_bot;hh<=crown_top;hh++){
 	    if(crown_top == crown_bot){
 	      t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * t_Crown_Depth;
+	      t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * t_Crown_Depth;
+	      t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
+	      t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
 	    }else{
 	      if(hh == crown_bot){
 		t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * (
 		  1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
 		  (t_Tree_Height - t_Crown_Depth));
+		t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * (
+		  1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		  (t_Tree_Height - t_Crown_Depth));
+		t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
+		t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
 	      }else{
 		if(hh == crown_top){
 		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
 		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		  t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
+		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		  t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
+		  t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
 		}else{
 		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens;
+		  t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens;
+		  t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
+		  t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.;
 		}
 	      }
 	    }
@@ -1183,17 +1222,38 @@ void Tree::BirthFromData(Species *S, int nume, int site0, float dbh_measured) {
 	  for(int hh=crown_bot;hh<=crown_top;hh++){
 	    if(crown_top == crown_bot){
 	      t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * t_Crown_Depth;
+	      t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens * t_Crown_Depth;
+	      t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.5 * t_dens * t_Crown_Depth;
+	      t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens * t_Crown_Depth;
 	    }else{
 	      if(hh == crown_bot){
 		t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
+		  (1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		   (t_Tree_Height - t_Crown_Depth));
+		t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens * 
+		  (1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		   (t_Tree_Height - t_Crown_Depth));
+		t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.5 * t_dens * 
+		  (1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
+		   (t_Tree_Height - t_Crown_Depth));
+		t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens * 
 		  (1.0*(int)(t_Tree_Height - t_Crown_Depth) + 1.0 -
 		   (t_Tree_Height - t_Crown_Depth));
 	      }else{
 		if(hh == crown_top){
 		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens * 
 		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		  t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens * 
+		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		  t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.5 * t_dens * 
+		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
+		  t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens * 
+		    (t_Tree_Height - 1.0*(int)(t_Tree_Height));
 		}else{
 		  t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = t_dens;
+		  t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens;
+		  t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.5 * t_dens;
+		  t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] = 0.25 * t_dens;
 		}
 	      }
 	    }
@@ -1268,8 +1328,17 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
 	  if(hh == crown_bot && col == center_y && row == center_x){
 	    float tree_LA_loss = replace_frac * ls_host->t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX];
 	    ls_t.t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] += tree_LA_loss;
-	    ls_t.t_leafarea += tree_LA_loss;
 	    ls_host->t_LAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] -= tree_LA_loss;
+
+	    ls_t.t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] += 0.25 * tree_LA_loss;
+	    ls_t.t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] += 0.5 * tree_LA_loss;
+	    ls_t.t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] += 0.25 * tree_LA_loss;
+
+	    ls_host->t_youngLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] -= 0.25 * tree_LA_loss;
+	    ls_host->t_matureLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] -= 0.5 * tree_LA_loss;
+	    ls_host->t_oldLAvox[hh-crown_bot][diffy+CRMAX][diffx+CRMAX] -= 0.25 * tree_LA_loss;
+
+	    ls_t.t_leafarea += tree_LA_loss;
 	    ls_host->t_leafarea -= tree_LA_loss;
 	  }
 	  icount++;
@@ -1674,9 +1743,9 @@ void Tree::UpdateLeafDynamics() {
   float flush=2.0*t_NPP*falloccanopy*0.68/(t_s->s_LMA);                           /* this is to convert the NPP allocated to leaves (falloccanopy is the fraction of biomass assumed to be alloacted to canopy (leaves+reproductive organs+twigs) at each timestep - Malhi et al 2011-, 68% of which is allocated to leaves - chave et al 2008, Chave et al 2010-), in new leaf area (2 is to convert carbon mass in biomass and LMA to convert leaf biomass into leaf area).*/
     
   t_flush = flush;
-    /* litter module */
+  /* litter module */
     
-    t_litter=t_oldLA/(t_s->s_time_old);
+  t_litter=t_oldLA/(t_s->s_time_old);
     
     /* leaf cycle */
     
@@ -1693,14 +1762,16 @@ void Tree::UpdateLeafDynamics() {
     t_litter*=t_s->s_LMA;
     
     if(!t_s->s_liana){
-      float change_ratio = t_leafarea / old_leafarea;
-
+      // How to adjust tree canopy?
       int center_x = t_site/cols; 
       int center_y = t_site%cols;
       int crown_r = (int) (t_Crown_Radius);
       int crown_top = (int) (t_Tree_Height)+1;
       int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
 
+#if 0
+      // Same percent change to all voxels
+      float change_ratio = t_leafarea / old_leafarea;
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
@@ -1712,6 +1783,30 @@ void Tree::UpdateLeafDynamics() {
 	  }
 	}
       }
+#endif
+
+#if 1
+      // If building, build from top. If losing, lose from bottom.
+      float tree_la_max = 1.0;
+      float tree_la_min = 0.01;
+      if(t_leafarea > old_leafarea){
+	float excess_la = t_leafarea - old_leafarea;
+	for(int hh=crown_top;hh<=crown_bot;hh--){
+	  for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	    int diffy = col - center_y;
+	    for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	      int diffx = row - center_x;
+	      if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+		float increment = max(0.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]);
+		t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+		excess_la -= increment;
+	      }
+	    }
+	  }
+	}
+      }else{
+      }
+#endif
     }
 }
 

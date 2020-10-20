@@ -1248,11 +1248,11 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   /* Overwrite with information from forest file */
   float can_bot = ls_host->t_Tree_Height - ls_host->t_Crown_Depth;
   if(crown_top > crown_bot){
-    ls_t.t_Tree_Height = 1.0 * (int)(can_bot) + 1.0;
+    ls_t.t_Tree_Height = 1.0 * (int)(can_bot) + 0.99;
   }else{
     ls_t.t_Tree_Height = ls_host->t_Tree_Height;
   }
-  ls_t.t_Crown_Radius = 0.5;
+  ls_t.t_Crown_Radius = ls_host->t_Crown_Radius;
   ls_t.t_Crown_Depth = ls_t.t_Tree_Height - can_bot;
   ls_t.t_dbh = ldbh;
 
@@ -1478,6 +1478,7 @@ void Tree::Fluxh(int h) {
 	absorb = minf(LAI3D[h][t_site+SBORD],19.5); // cumulative LAI looking upward from height h
 	layer_lai -= LAI3D[h][t_site+SBORD];
       }
+
 	
       int intabsorb=int(absorb*20.0);  // LAD * 20
       int intabsorb_below=int(absorb_below*20.0);  // LAD * 20
@@ -1672,10 +1673,6 @@ void Tree::UpdateLeafDynamics() {
     
   float flush=2.0*t_NPP*falloccanopy*0.68/(t_s->s_LMA);                           /* this is to convert the NPP allocated to leaves (falloccanopy is the fraction of biomass assumed to be alloacted to canopy (leaves+reproductive organs+twigs) at each timestep - Malhi et al 2011-, 68% of which is allocated to leaves - chave et al 2008, Chave et al 2010-), in new leaf area (2 is to convert carbon mass in biomass and LMA to convert leaf biomass into leaf area).*/
     
-  if(t_s->s_liana){
-    flush = flush / falloccanopy * 0.45;
-  }
-
   t_flush = flush;
     /* litter module */
     
@@ -1703,7 +1700,6 @@ void Tree::UpdateLeafDynamics() {
       int crown_r = (int) (t_Crown_Radius);
       int crown_top = (int) (t_Tree_Height)+1;
       int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
-      int icount=0;
 
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
@@ -1712,7 +1708,6 @@ void Tree::UpdateLeafDynamics() {
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	    for(int hh=crown_bot;hh<=crown_top;hh++){
 	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= change_ratio;
-	      icount++;
 	    }
 	  }
 	}
@@ -1845,7 +1840,6 @@ void Liana::Update(){
     
     // Loop over host trees
     for(int ihost=0;ihost<l_stem.size();ihost++){
-
       // Check if host tree is still alive
       if(l_stem[ihost].ls_host->t_dbh == 0 || death){
 	l_stem.erase(l_stem.begin()+ihost);
@@ -2220,6 +2214,7 @@ int main(int argc,char *argv[]) {
         start_time = stop_time;
         
         Evolution();
+	exit(0);
         stop_time = clock();
         duration +=flor(stop_time-start_time);
         

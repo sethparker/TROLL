@@ -873,6 +873,9 @@ public:
   float t_flush;
 
   float *t_leafareaLayer;
+  float *t_YleafareaLayer;
+  float *t_MleafareaLayer;
+  float *t_OleafareaLayer;
   float ***t_LAvox;
   float ***t_youngLAvox;
   float ***t_matureLAvox;
@@ -917,8 +920,16 @@ public:
     }
     
     t_leafareaLayer = new float[CDMAX];
-    for(int ii=0;ii<CDMAX;ii++)t_leafareaLayer[ii] = 0;
-    
+    t_YleafareaLayer = new float[CDMAX];
+    t_MleafareaLayer = new float[CDMAX];
+    t_OleafareaLayer = new float[CDMAX];
+    for(int ii=0;ii<CDMAX;ii++){
+      t_leafareaLayer[ii] = 0;
+      t_YleafareaLayer[ii] = 0;
+      t_MleafareaLayer[ii] = 0;
+      t_OleafareaLayer[ii] = 0;
+    }
+
     t_TotLayerVox = 0;
     
     t_LAvox = new float**[height];
@@ -949,6 +960,9 @@ public:
   virtual ~Tree() {
     if(_NDD)delete [] t_NDDfield;   /* _NDD */
     delete [] t_leafareaLayer;
+    delete [] t_YleafareaLayer;
+    delete [] t_MleafareaLayer;
+    delete [] t_OleafareaLayer;
     for(int h=0;h<(CDMAX+1);h++){
       for(int icr=0;icr<(2*CRMAX+1);icr++){
 	delete [] t_LAvox[h][icr];
@@ -1427,6 +1441,9 @@ void Tree::CalcLAI() {
 	int icount = 0;
 	for(int h=crown_base;h<=crown_top;h++){
 	  t_leafareaLayer[h-crown_base] = 0;
+	  t_YleafareaLayer[h-crown_base] = 0;
+	  t_MleafareaLayer[h-crown_base] = 0;
+	  t_OleafareaLayer[h-crown_base] = 0;
 	}
 	
         // loop over the tree crown
@@ -1439,22 +1456,34 @@ void Tree::CalcLAI() {
 		  if(crown_top-crown_base == 0) {
 		    LAI3D[crown_top][site] += t_LAvox[0][CRMAX-yy][CRMAX-xx];
 		    t_leafareaLayer[0] += t_LAvox[0][CRMAX-yy][CRMAX-xx];;
+		    t_YleafareaLayer[0] += t_youngLAvox[0][CRMAX-yy][CRMAX-xx];;
+		    t_MleafareaLayer[0] += t_matureLAvox[0][CRMAX-yy][CRMAX-xx];;
+		    t_OleafareaLayer[0] += t_oldLAvox[0][CRMAX-yy][CRMAX-xx];;
 		    icount++;
 		  }
 		  else{
 		    LAI3D[crown_base][site] += t_LAvox[0][CRMAX-yy][CRMAX-xx];
 		    t_leafareaLayer[0] += t_LAvox[0][CRMAX-yy][CRMAX-xx];;
+		    t_YleafareaLayer[0] += t_youngLAvox[0][CRMAX-yy][CRMAX-xx];;
+		    t_MleafareaLayer[0] += t_matureLAvox[0][CRMAX-yy][CRMAX-xx];;
+		    t_OleafareaLayer[0] += t_oldLAvox[0][CRMAX-yy][CRMAX-xx];;
 		    icount++;
 		    if(crown_top-crown_base>=2){
 		      for(int h=crown_base+1;h <= crown_top-1;h++){
 			LAI3D[h][site] += t_LAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
 			t_leafareaLayer[h-crown_base] += t_LAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
+			t_YleafareaLayer[h-crown_base] += t_youngLAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
+			t_MleafareaLayer[h-crown_base] += t_matureLAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
+			t_OleafareaLayer[h-crown_base] += t_oldLAvox[h-crown_base][CRMAX-yy][CRMAX-xx];;
 			icount++;
 		      }
 		    }
 
 		    LAI3D[crown_top][site] += t_LAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
 		    t_leafareaLayer[crown_top-crown_base] += t_LAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
+		    t_YleafareaLayer[crown_top-crown_base] += t_youngLAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
+		    t_MleafareaLayer[crown_top-crown_base] += t_matureLAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
+		    t_OleafareaLayer[crown_top-crown_base] += t_oldLAvox[crown_top-crown_base][CRMAX-yy][CRMAX-xx];
 		    icount++;
 		  }
                 }
@@ -1480,6 +1509,9 @@ void LianaStem::CalcLAI(){
 
   for(int h=crown_base;h<=crown_top;h++){
     ls_t.t_leafareaLayer[h-crown_base] = 0;
+    ls_t.t_YleafareaLayer[h-crown_base] = 0;
+    ls_t.t_MleafareaLayer[h-crown_base] = 0;
+    ls_t.t_OleafareaLayer[h-crown_base] = 0;
   }
 
   // Loop over canopy of host tree
@@ -1493,6 +1525,9 @@ void LianaStem::CalcLAI(){
 	  ldens = ls_t.t_LAvox[h-crown_base][diffy+CRMAX][diffx+CRMAX];
 	  LAI3D[h][site] += ldens;
 	  ls_t.t_leafareaLayer[h-crown_base] += ldens;
+	  ls_t.t_YleafareaLayer[h-crown_base] += ls_t.t_youngLAvox[h-crown_base][diffy+CRMAX][diffx+CRMAX];
+	  ls_t.t_MleafareaLayer[h-crown_base] += ls_t.t_matureLAvox[h-crown_base][diffy+CRMAX][diffx+CRMAX];
+	  ls_t.t_OleafareaLayer[h-crown_base] += ls_t.t_oldLAvox[h-crown_base][diffy+CRMAX][diffx+CRMAX];
 	}
       }
     }
@@ -1648,12 +1683,16 @@ void Tree::Growth() {
 
 	    float effLA = 189.3 * timestep; // Converts umolC/m2/s into gC/m2 assimilated
 	    // during this timestep.
-	    effLA *= (0.5 * t_leafarea + 0.5 * t_matureLA);
-	    if(crown_base != crown_top){ // If there is more than one layer
-	      float prop_lai_layer = t_leafareaLayer[h-crown_base] / t_leafarea;
-	      effLA *= prop_lai_layer;
-	      if(t_from_Data)cout << "h: " << h << " proplailayer: " << prop_lai_layer << " layer: " << t_leafareaLayer[h-crown_base] << " totleafarea: " << t_leafarea << endl;
-	    }
+	    //effLA *= (0.5 * t_leafarea + 0.5 * t_matureLA);
+	    //if(crown_base != crown_top){ // If there is more than one layer
+	  //float prop_lai_layer = t_leafareaLayer[h-crown_base] / t_leafarea;
+	    //  effLA *= prop_lai_layer;
+	    //if(t_from_Data)cout << "h: " << h << " proplailayer: " << prop_lai_layer << " layer: " << t_leafareaLayer[h-crown_base] << " totleafarea: " << t_leafarea << endl;
+	    //}
+
+	    effLA *= (0.5 * t_YleafareaLayer[h-crown_base] + 1.0 * t_MleafareaLayer[h-crown_base] +
+		      0.5 * t_OleafareaLayer[h-crown_base]);
+
 	    // The code above computes the proportion of leaf area in this level.
             t_GPP+=t_s->dailyGPPleaf(t_PPFD, t_VPD, t_T, t_dens, t_Crown_Depth)*effLA;
             t_Rday+=tempRday*effLA*0.4;

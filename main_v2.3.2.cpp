@@ -1739,7 +1739,7 @@ void Tree::Growth() {
     }
     
     /**** NPP allocation to leaves *****/
-    UpdateLeafDynamics();
+    //UpdateLeafDynamics();
     
     /* Output for control purposes */
     
@@ -2339,7 +2339,6 @@ int main(int argc,char *argv[]) {
         start_time = stop_time;
         
         Evolution();
-	exit(0);
         stop_time = clock();
         duration +=flor(stop_time-start_time);
         

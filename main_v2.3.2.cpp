@@ -1739,7 +1739,7 @@ void Tree::Growth() {
     }
     
     /**** NPP allocation to leaves *****/
-    //UpdateLeafDynamics();
+    UpdateLeafDynamics();
     
     /* Output for control purposes */
     
@@ -1779,7 +1779,7 @@ void Tree::UpdateLeafDynamics() {
   /* litter module */
     
   t_litter=t_oldLA/(t_s->s_time_old);
-    
+
   // Leaf cycle by voxel because different voxels have different % young, mature, old.
   // First do aging and loss.
   int center_x = t_site/cols; 
@@ -1843,14 +1843,18 @@ void Tree::UpdateLeafDynamics() {
     // If building, build from top. If losing, lose from bottom.
     float tree_la_max = 1.0;
     float excess_la = flush;
-    for(int hh=crown_top;hh<=crown_bot;hh--){
+    for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-	    float increment = min(excess_la,
-				  max(0.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
+	    float increment = minf(excess_la,
+				  maxf(0.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
+
+
+	    //if(t_from_Data)cout << "Flush: " << flush << " Excess_LA: " << excess_la << " Increment: " << increment << " Diff: " << maxf(1.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]) << endl;
+
 	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLA += increment;
@@ -1865,14 +1869,14 @@ void Tree::UpdateLeafDynamics() {
     // Dealing with a liana
     float liana_la_max = 1.0;
     float excess_la = flush;
-    for(int hh=crown_top;hh<=crown_bot;hh--){
+    for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-	    float increment = min(excess_la,
-				  max(0.,liana_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
+	    float increment = minf(excess_la,
+				  maxf(0.,liana_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
 	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLA += increment;
@@ -1882,6 +1886,8 @@ void Tree::UpdateLeafDynamics() {
 	}
       }
     }
+
+    if(t_from_Data)cout << "Flush: " << flush << " Litter: " << t_litter / t_s->s_LMA << endl;
     t_litter += (excess_la * t_s->s_LMA); 
   }
 

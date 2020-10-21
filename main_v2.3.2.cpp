@@ -1319,14 +1319,9 @@ void LianaStem::BirthFromData(Tree *T, Species *S, int hsite, float ldbh, int nu
   int crown_bot = (int) (ls_host->t_Tree_Height - ls_host->t_Crown_Depth)+1;
 
   /* Overwrite with information from forest file */
-  float can_bot = ls_host->t_Tree_Height - ls_host->t_Crown_Depth;
-  if(crown_top > crown_bot){
-    ls_t.t_Tree_Height = 1.0 * (int)(can_bot) + 0.99;
-  }else{
-    ls_t.t_Tree_Height = ls_host->t_Tree_Height;
-  }
+  ls_t.t_Tree_Height = ls_host->t_Tree_Height;
   ls_t.t_Crown_Radius = ls_host->t_Crown_Radius;
-  ls_t.t_Crown_Depth = ls_t.t_Tree_Height - can_bot;
+  ls_t.t_Crown_Depth = ls_host->t_Crown_Depth;
   ls_t.t_dbh = ldbh;
 
   ls_t.t_leafarea = 0.;

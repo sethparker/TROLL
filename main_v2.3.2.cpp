@@ -988,9 +988,9 @@ public:
     
     void BirthFromData(Species *S, int nume, int site0, float dbh_measured); /* tree initialisation from field data */
     void Death();                   /* tree death */
-    void Growth();                  /* tree growth */
+    void Growth(Tree *host);                  /* tree growth */
   void Fluxh(int h);             /* compute mean light flux received by the tree crown layer at height h new version (PPFD symmetrical with T and VPD) -- v230 */
-    void UpdateLeafDynamics();           /* computes within-canopy leaf dynamics (IM since v 2.1, as a standalone function in v.2.3.0) */
+    void UpdateLeafDynamics(Tree *host);           /* computes within-canopy leaf dynamics (IM since v 2.1, as a standalone function in v.2.3.0) */
     void UpdateTreeBiometry();      /* compute biometric relations, including allometry -- contains a large part of empirical functions */
     int   Couple();                 /* force exerted by other trees, _TREEFALL */
     
@@ -1633,7 +1633,7 @@ void Tree::Fluxh(int h) {
  ####         called by UpdateTree        ####
  #############################################*/
 
-void Tree::Growth() {
+void Tree::Growth(Tree *host=NULL) {
     
   float layer_prop; //proportion of leaves in a given layer.
 
@@ -1739,7 +1739,7 @@ void Tree::Growth() {
     }
     
     /**** NPP allocation to leaves *****/
-    UpdateLeafDynamics();
+    UpdateLeafDynamics(host);
     
     /* Output for control purposes */
     
@@ -1767,7 +1767,7 @@ void Tree::Growth() {
  ####         called by Tree::Growth              ####
  #####################################################*/
 
-void Tree::UpdateLeafDynamics() {
+void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   
     // make a standalone function for leaf dynamics & litter?
     
@@ -1822,23 +1822,6 @@ void Tree::UpdateLeafDynamics() {
   t_leafarea  = t_youngLA + t_matureLA + t_oldLA;
   t_litter*=t_s->s_LMA;
 
-
-#if 0
-  // Same percent change to all voxels
-  float change_ratio = t_leafarea / old_leafarea;
-  for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
-    int diffy = col - center_y;
-    for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
-      int diffx = row - center_x;
-      if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-	for(int hh=crown_bot;hh<=crown_top;hh++){
-	  t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= change_ratio;
-	}
-      }
-    }
-  }
-#endif
-    
   if(!t_s->s_liana){
     // If building, build from top. If losing, lose from bottom.
     float tree_la_max = 1.0;
@@ -1849,6 +1832,8 @@ void Tree::UpdateLeafDynamics() {
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	    float voxel_total_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
+
 	    float increment = minf(excess_la,
 				  maxf(0.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
 
@@ -1875,6 +1860,29 @@ void Tree::UpdateLeafDynamics() {
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	    
+	    // Knock out some tree leaves
+	    float knockout = 0.1 * genrand2();
+	    if(t_from_Data)cout << "Before: " << ls_host->t_leafarea << endl;
+	    float LAchange = knockout * ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
+	    LAchange = knockout * ls_host->t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    ls_host->t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
+	    ls_host->t_youngLA -= LAchange;
+	    ls_host->t_leafarea -= LAchange;
+	    LAchange = knockout * ls_host->t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    ls_host->t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
+	    ls_host->t_matureLA -= LAchange;
+	    ls_host->t_leafarea -= LAchange;
+	    LAchange = knockout * ls_host->t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    ls_host->t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
+	    ls_host->t_oldLA -= LAchange;
+	    ls_host->t_leafarea -= LAchange;
+	    if(t_from_Data)cout << "After: " << ls_host->t_leafarea << endl;
+
+	    //cout << knockout << endl;
+	    //cout << "After: " << ls_host->t_leafarea << endl;
+	    
 	    float increment = minf(excess_la,
 				  maxf(0.,liana_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
 	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
@@ -1886,7 +1894,35 @@ void Tree::UpdateLeafDynamics() {
 	}
       }
     }
-
+    
+    // Let the tree shed some liana
+    float shed_prob = 0.05;
+    for(int hh=crown_top;hh>=crown_bot;hh--){
+      for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	int diffy = col - center_y;
+	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	  int diffx = row - center_x;
+	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	    // get random number
+	    if(genrand2() < shed_prob){
+	      float shed_amount = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      float shed_Yamount = t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      float shed_Mamount = t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      float shed_Oamount = t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
+	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
+	      t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
+	      t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
+	      t_youngLA -= shed_Yamount;
+	      t_matureLA -= shed_Mamount;
+	      t_oldLA -= shed_Oamount;
+	      t_leafarea -= shed_amount;
+	    }
+	  }
+	}
+      }
+    }
+    
     if(t_from_Data)cout << "Flush: " << flush << " Litter: " << t_litter / t_s->s_LMA << endl;
     t_litter += (excess_la * t_s->s_LMA); 
   }
@@ -1977,10 +2013,16 @@ void Liana::Update(){
 	l_stem.erase(l_stem.begin()+ihost);
 	ihost--;
       }else{
-	(l_stem[ihost].ls_t).Growth();
+	(l_stem[ihost].ls_t).Growth(l_stem[ihost].ls_host);
 	l_stem[ihost].ls_t.t_Tree_Height = l_stem[ihost].ls_host->t_Tree_Height;
 	l_stem[ihost].ls_t.t_Crown_Depth = l_stem[ihost].ls_host->t_Crown_Depth;
 	l_stem[ihost].ls_t.t_Crown_Radius = l_stem[ihost].ls_host->t_Crown_Radius;
+
+	// Knock out host tree leaves.
+
+
+
+
       }
 
     }

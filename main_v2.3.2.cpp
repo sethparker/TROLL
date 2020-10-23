@@ -1792,6 +1792,8 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   t_matureLA = 0.;
   t_oldLA = 0.;
 
+  // Age leaves, regardless of whether it is a liana or tree.
+
   for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
     int diffy = col - center_y;
     for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
@@ -1823,8 +1825,9 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   t_litter*=t_s->s_LMA;
 
   if(!t_s->s_liana){
-    // If building, build from top. If losing, lose from bottom.
-    float tree_la_max = 1.0;
+    // This is for trees.
+    // When we flush, we add leaves to the top layer, then work our way down.
+    float tree_la_max = 1.0;  // The max voxel leaf area.
     float excess_la = flush;
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
@@ -1836,10 +1839,6 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 
 	    float increment = minf(excess_la,
 				  maxf(0.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
-
-
-	    //if(t_from_Data)cout << "Flush: " << flush << " Excess_LA: " << excess_la << " Increment: " << increment << " Diff: " << maxf(1.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]) << endl;
-
 	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLA += increment;
@@ -1852,8 +1851,10 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
     t_litter += (excess_la * t_s->s_LMA); 
   }else{
     // Dealing with a liana
-    float liana_la_max = 1.0;
+    float liana_la_max = 1.0;  // The max voxel liana leaf area.
     float excess_la = flush;
+
+    // Like trees, we start at the top and work downward.
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
@@ -1861,9 +1862,18 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	    
-	    // Knock out some tree leaves
+	    float increment = minf(excess_la,
+				  maxf(0.,liana_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
+	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	    t_youngLA += increment;
+	    t_leafarea += increment;
+	    excess_la -= increment;
+
+	    // Allow the liana to knock out some tree leaves.
+	    // Generate a random number. Remove a proportion of tree leaves based on the
+	    // random number. The multiplication by 0.1 sets the removal to be between 0 and 0.1.
 	    float knockout = 0.1 * genrand2();
-	    if(t_from_Data)cout << "Before: " << ls_host->t_leafarea << endl;
 	    float LAchange = knockout * ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
 	    ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
 	    LAchange = knockout * ls_host->t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
@@ -1878,25 +1888,14 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	    ls_host->t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
 	    ls_host->t_oldLA -= LAchange;
 	    ls_host->t_leafarea -= LAchange;
-	    if(t_from_Data)cout << "After: " << ls_host->t_leafarea << endl;
-
-	    //cout << knockout << endl;
-	    //cout << "After: " << ls_host->t_leafarea << endl;
 	    
-	    float increment = minf(excess_la,
-				  maxf(0.,liana_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
-	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
-	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
-	    t_youngLA += increment;
-	    t_leafarea += increment;
-	    excess_la -= increment;
 	  }
 	}
       }
     }
     
     // Let the tree shed some liana
-    float shed_prob = 0.05;
+    float shed_prob = 0.05; // With this probability, the liana is completely shed from the voxel.
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
@@ -1923,7 +1922,6 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
       }
     }
     
-    if(t_from_Data)cout << "Flush: " << flush << " Litter: " << t_litter / t_s->s_LMA << endl;
     t_litter += (excess_la * t_s->s_LMA); 
   }
 

@@ -1787,6 +1787,11 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   int crown_r = (int) (t_Crown_Radius);
   int crown_top = (int) (t_Tree_Height)+1;
   int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
+
+  float vox_la_max = 1.0;  // The max voxel leaf area.
+  int max_la_scheme = 0;
+  float current_lai;
+  int l_growth_scheme = 0; // 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up
   
   t_youngLA = 0.;
   t_matureLA = 0.;
@@ -1800,12 +1805,15 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
       int diffx = row - center_x;
       if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	for(int hh=crown_bot;hh<=crown_top;hh++){
+
 	  t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0 - 1.0/t_s->s_time_old);
 	  t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += 
 	    t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] / t_s->s_time_mature;
+
 	  t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0 - 1.0/t_s->s_time_mature);
 	  t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += 
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] / t_s->s_time_young;
+
 	  t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0 - 1.0/t_s->s_time_young);
 
 	  t_youngLA += t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
@@ -1827,7 +1835,6 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   if(!t_s->s_liana){
     // This is for trees.
     // When we flush, we add leaves to the top layer, then work our way down.
-    float tree_la_max = 1.0;  // The max voxel leaf area.
     float excess_la = flush;
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
@@ -1835,10 +1842,15 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
-	    float voxel_total_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
-
+	    if(max_la_scheme == 0){
+	      current_lai = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    }else{
+	      if(max_la_scheme == 1){
+		current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
+	      }
+	    }
 	    float increment = minf(excess_la,
-				  maxf(0.,tree_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
+				  maxf(0.,vox_la_max-current_lai));
 	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLA += increment;
@@ -1850,11 +1862,164 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
     }
     t_litter += (excess_la * t_s->s_LMA); 
   }else{
-    // Dealing with a liana
-    float liana_la_max = 1.0;  // The max voxel liana leaf area.
-    float excess_la = flush;
 
-    // Like trees, we start at the top and work downward.
+    // Dealing with a liana
+    float excess_la = flush;
+    float la_capacity=0.;
+    float la_to_distribute;
+    for(int hh=crown_top;hh>=crown_bot;hh--){
+      for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	int diffy = col - center_y;
+	for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	  int diffx = row - center_x;
+	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	    if(max_la_scheme == 0){
+	      current_lai = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    }
+	    if(max_la_scheme == 1){
+	      current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
+	    }
+	    la_capacity += maxf(0.,vox_la_max-current_lai);
+	  }
+	}
+      }
+    }
+    la_to_distribute = minf(la_capacity,excess_la);
+
+
+    if(l_growth_scheme == 0){
+      // Like trees, we start at the top and work downward.
+      for(int hh=crown_top;hh>=crown_bot;hh--){
+	for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	  int diffy = col - center_y;
+	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	    int diffx = row - center_x;
+	    if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	      if(max_la_scheme == 0){
+		current_lai = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      }else{
+		if(max_la_scheme == 1){
+		  current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
+		}
+	      }
+	      float increment = minf(excess_la,
+				     maxf(0.,vox_la_max-current_lai));
+	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	      t_youngLA += increment;
+	      t_leafarea += increment;
+	      excess_la -= increment;
+	    }
+	  }
+	}
+      }
+    }
+
+    if(l_growth_scheme == 1){
+      // Make the list of indices
+      std::vector<int> my_hh;
+      std::vector<int> my_y;
+      std::vector<int> my_x;
+      std::vector<int> my_site;
+      for(int hh=crown_top;hh>=crown_bot;hh--){
+	for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	  int diffy = col - center_y;
+	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	    int diffx = row - center_x;
+	    if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	      my_hh.push_back(hh);
+	      my_y.push_back(CRMAX+diffy);
+	      my_x.push_back(CRMAX+diffx);
+	      my_site.push_back(col+cols*row+SBORD);
+	    }
+	  }
+	}
+      }
+      int which_cell;
+      while(my_hh.size() > 0){
+	which_cell = trunc(genrand2() * my_hh.size());
+	if(max_la_scheme == 0){
+	  current_lai = t_LAvox[my_hh.at(which_cell)-crown_bot][my_y.at(which_cell)][my_x.at(which_cell)];
+	}else{
+	  if(max_la_scheme == 1){
+	    current_lai = LAI3D[my_hh.at(which_cell)][my_site.at(which_cell)] - 
+	      LAI3D[my_hh.at(which_cell)+1][my_site.at(which_cell)];
+	  }
+	}
+	float increment = minf(excess_la,
+			       maxf(0.,vox_la_max-current_lai));
+	t_LAvox[my_hh.at(which_cell)-crown_bot][my_y.at(which_cell)][my_x.at(which_cell)] += increment;
+	t_youngLAvox[my_hh.at(which_cell)-crown_bot][my_y.at(which_cell)][my_x.at(which_cell)] += increment;
+	t_youngLA += increment;
+	t_leafarea += increment;
+	excess_la -= increment;
+	my_hh.erase(my_hh.begin()+which_cell);
+	my_x.erase(my_x.begin()+which_cell);
+	my_y.erase(my_y.begin()+which_cell);
+	my_site.erase(my_site.begin()+which_cell);
+      }
+    }
+
+    if(l_growth_scheme == 2){
+      // Homogeneous
+      float fill_factor = minf(1., excess_la / la_capacity);
+
+      for(int hh=crown_top;hh>=crown_bot;hh--){
+	for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	  int diffy = col - center_y;
+	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	    int diffx = row - center_x;
+	    if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	      if(max_la_scheme == 0){
+		current_lai = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      }else{
+		if(max_la_scheme == 1){
+		  current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
+		}
+	      }
+	      float increment = minf(excess_la,
+				     maxf(0.,vox_la_max-current_lai));
+	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	      t_youngLA += increment;
+	      t_leafarea += increment;
+	      excess_la -= increment;
+	    }
+	  }
+	}
+      }
+    }
+
+    if(l_growth_scheme == 3){
+      // Like trees, we start at the top and work downward.
+      for(int hh=crown_top;hh>=crown_bot;hh--){
+	for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
+	  int diffy = col - center_y;
+	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
+	    int diffx = row - center_x;
+	    if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
+	      if(max_la_scheme == 0){
+		current_lai = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      }else{
+		if(max_la_scheme == 1){
+		  current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
+		}
+	      }
+	      float increment = minf(excess_la,
+				     maxf(0.,vox_la_max-current_lai));
+	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	      t_youngLA += increment;
+	      t_leafarea += increment;
+	      excess_la -= increment;
+	    }
+	  }
+	}
+      }
+    }
+
+
+
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
@@ -1862,17 +2027,10 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	    
-	    float increment = minf(excess_la,
-				  maxf(0.,liana_la_max-t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx]));
-	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
-	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
-	    t_youngLA += increment;
-	    t_leafarea += increment;
-	    excess_la -= increment;
-
 	    // Allow the liana to knock out some tree leaves.
 	    // Generate a random number. Remove a proportion of tree leaves based on the
 	    // random number. The multiplication by 0.1 sets the removal to be between 0 and 0.1.
+	    
 	    float knockout = 0.1 * genrand2();
 	    float LAchange = knockout * ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
 	    ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;

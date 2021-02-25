@@ -103,7 +103,7 @@ _NDD=1,                 /* if defined, negative density dependant processes affe
 _OUTPUT_reduced=1,      /* reduced set of ouput files */
 _OUTPUT_last100=0,      /* output that tracks the last 100 years of the simulation for the whole grid (2D) */
 _OUTPUT_fullLAI=0,       /* output of full final voxel field */
-_FromData=1;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
+_FromData=0;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
 
 
 /********************************/
@@ -1792,6 +1792,19 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   int max_la_scheme = 0;
   float current_lai;
   int l_growth_scheme = 0; // 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up
+  float knockout_max = 0.1; // Parameter controlling the extent to which lianas can knock out trees
+  float shed_prob = 0.05; // With this probability, the liana is completely shed from the voxel.
+  float total_shed;
+  float total_knockout;
+  float knockout;
+  float knock_median = 0.05;
+  float knocka = 0.33;
+  float knockb = -log(2.0) / log(1.0-pow(knock_median,knocka));
+  float shed_prop;
+  float shed_median = 0.05;
+  float sheda=0.33;
+  float shedb = -log(2.0)/log(1.0-pow(shed_median,sheda));
+  float increment;
   
   t_youngLA = 0.;
   t_matureLA = 0.;
@@ -1832,6 +1845,26 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   t_leafarea  = t_youngLA + t_matureLA + t_oldLA;
   t_litter*=t_s->s_LMA;
 
+  // Setting 1: max_la_scheme
+  //            Value = 0: We apply the max leaf area for each stem individually
+  //            Value = 1: We apply the max leaf area to the sum of all stems in the voxel
+  // Parameter 1: vox_la_max: max leaf area in the voxel, as applied according to Setting 1.
+  // Setting 2: Trees grow leaves from top down. There is also a horizontal order.
+  // Setting 3: If flush exceeds capacity, the excess is dropped as litter.
+  // Setting 4: Liana growth scheme, determined by parameter l_growth_scheme.
+  //          Value = 0: top down
+  //          Value = 1: random
+  //          Value = 2: homogeneous
+  //          Value = 3: bottom up
+  // Setting 5: Liana can knock out tree canopy. All voxels treated independently.
+  //            Assume Kumaraswamy distribution.
+  // Parameters 2 and 3: Amount knocked out depends on two parameters, knock_median and knocka.
+  // Setting 6: Trees can shed lianas. Voxels treated independently. Kumaraswamy.
+  // Parameters 4 and 5: shed_median and sheda.
+
+
+  // Total of 5 parameters, plus voxel capacity scheme and liana growth scheme.
+
   if(!t_s->s_liana){
     // This is for trees.
     // When we flush, we add leaves to the top layer, then work our way down.
@@ -1849,7 +1882,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 		current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
 	      }
 	    }
-	    float increment = minf(excess_la,
+	    increment = minf(excess_la,
 				  maxf(0.,vox_la_max-current_lai));
 	    t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
@@ -1902,7 +1935,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 		  current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
 		}
 	      }
-	      float increment = minf(excess_la,
+	      increment = minf(excess_la,
 				     maxf(0.,vox_la_max-current_lai));
 	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
@@ -1946,7 +1979,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	      LAI3D[my_hh.at(which_cell)+1][my_site.at(which_cell)];
 	  }
 	}
-	float increment = minf(excess_la,
+	increment = minf(excess_la,
 			       maxf(0.,vox_la_max-current_lai));
 	t_LAvox[my_hh.at(which_cell)-crown_bot][my_y.at(which_cell)][my_x.at(which_cell)] += increment;
 	t_youngLAvox[my_hh.at(which_cell)-crown_bot][my_y.at(which_cell)][my_x.at(which_cell)] += increment;
@@ -1962,8 +1995,6 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 
     if(l_growth_scheme == 2){
       // Homogeneous
-      float fill_factor = minf(1., excess_la / la_capacity);
-
       for(int hh=crown_top;hh>=crown_bot;hh--){
 	for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	  int diffy = col - center_y;
@@ -1977,8 +2008,11 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 		  current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
 		}
 	      }
-	      float increment = minf(excess_la,
-				     maxf(0.,vox_la_max-current_lai));
+	      if(la_capacity > 1.0e-6){
+		increment = la_to_distribute / la_capacity * (vox_la_max - current_lai);
+	      }else{
+		increment = 0.;
+	      }
 	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	      t_youngLA += increment;
@@ -1991,8 +2025,8 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
     }
 
     if(l_growth_scheme == 3){
-      // Like trees, we start at the top and work downward.
-      for(int hh=crown_top;hh>=crown_bot;hh--){
+      // In this case, we start at the bottom and work up.
+      for(int hh=crown_bot;hh<=crown_top;hh++){
 	for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	  int diffy = col - center_y;
 	  for(int row=max(0,center_x-crown_r);row<=min(rows-1,center_x+crown_r);row++) {
@@ -2005,7 +2039,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 		  current_lai = LAI3D[hh][col+cols*row+SBORD] - LAI3D[hh+1][col+cols*row+SBORD];
 		}
 	      }
-	      float increment = minf(excess_la,
+	      increment = minf(excess_la,
 				     maxf(0.,vox_la_max-current_lai));
 	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
@@ -2019,7 +2053,10 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
     }
 
 
-
+    // Allow the liana to knock out some tree leaves.
+    // Generate a random number. Remove a proportion of tree leaves based on the
+    // random number. The multiplication by 0.1 sets the removal to be between 0 and 0.1.
+    total_knockout = 0.;
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
@@ -2027,12 +2064,12 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	    
-	    // Allow the liana to knock out some tree leaves.
-	    // Generate a random number. Remove a proportion of tree leaves based on the
-	    // random number. The multiplication by 0.1 sets the removal to be between 0 and 0.1.
-	    
-	    float knockout = 0.1 * genrand2();
+	    // uniform distribution
+	    //knockout = knockout_max * genrand2();
+	    // kumaraswamy distribution
+	    knockout = pow(1.0 - pow(1.0 - genrand2(),1.0/knockb),1.0/knocka);
 	    float LAchange = knockout * ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	    total_knockout += LAchange;
 	    ls_host->t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
 	    LAchange = knockout * ls_host->t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
 	    ls_host->t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] -= LAchange;
@@ -2051,9 +2088,10 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	}
       }
     }
+    t_litter += ((total_knockout)* ls_host->t_s->s_LMA); 
     
     // Let the tree shed some liana
-    float shed_prob = 0.05; // With this probability, the liana is completely shed from the voxel.
+    total_shed = 0.;
     for(int hh=crown_top;hh>=crown_bot;hh--){
       for(int col=max(0,center_y-crown_r);col<=min(cols-1,center_y+crown_r);col++) {
 	int diffy = col - center_y;
@@ -2061,26 +2099,28 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	  int diffx = row - center_x;
 	  if(diffx*diffx + diffy*diffy <= crown_r*crown_r){
 	    // get random number
-	    if(genrand2() < shed_prob){
-	      float shed_amount = t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
-	      float shed_Yamount = t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
-	      float shed_Mamount = t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
-	      float shed_Oamount = t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
-	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
-	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
-	      t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
-	      t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] = 0.;
+	    //if(genrand2() < shed_prob){
+	    shed_prop = pow(1.0 - pow(1.0 - genrand2(),1.0/shedb),1.0/sheda);
+	      float shed_amount = shed_prop * t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      total_shed += shed_amount;
+	      float shed_Yamount = shed_prop * t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      float shed_Mamount = shed_prop * t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      float shed_Oamount = shed_prop * t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0-shed_prop);
+	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0-shed_prop);
+	      t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0-shed_prop);
+	      t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] *= (1.0-shed_prop);
 	      t_youngLA -= shed_Yamount;
 	      t_matureLA -= shed_Mamount;
 	      t_oldLA -= shed_Oamount;
 	      t_leafarea -= shed_amount;
-	    }
+	      //	    }
 	  }
 	}
       }
     }
     
-    t_litter += (excess_la * t_s->s_LMA); 
+    t_litter += ((excess_la + total_shed)* t_s->s_LMA); 
   }
 
 }

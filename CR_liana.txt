@@ -34,6 +34,7 @@
 0.035	/* minimal death rate
 0.035	/* m1 (slope of death rate)
 405	/* atmospheric CO2 concentration in micromol/mol */
+1       /* vox_la_max; max voxel leaf area */
 15  /* R # for NDD */
 1 /* deltaR # for NDD */
 1 /* deltaD # for NDD */

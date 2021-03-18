@@ -103,7 +103,7 @@ _NDD=1,                 /* if defined, negative density dependant processes affe
 _OUTPUT_reduced=1,      /* reduced set of ouput files */
 _OUTPUT_last100=0,      /* output that tracks the last 100 years of the simulation for the whole grid (2D) */
 _OUTPUT_fullLAI=0,       /* output of full final voxel field */
-_FromData=0;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
+_FromData=1;            /* if defined, an additional input file can be provided to start simulations from an existing data set or a simulated data set (5 parameters are needed: x and y coordinates, dbh, species_label, species */
 
 
 /********************************/
@@ -167,6 +167,7 @@ BAtot;
 
 float maxdens;
 
+float vox_la_max;
 
 /*********************************************/
 /* Environmental variables of the simulation */
@@ -1788,7 +1789,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   int crown_top = (int) (t_Tree_Height)+1;
   int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
 
-  float vox_la_max = 1.0;  // The max voxel leaf area.
+  //float vox_la_max = 1.0;  // The max voxel leaf area.
   int max_la_scheme = 0;
   float current_lai;
   int l_growth_scheme = 0; // 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up
@@ -1856,9 +1857,11 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   //          Value = 1: random
   //          Value = 2: homogeneous
   //          Value = 3: bottom up
+
   // Setting 5: Liana can knock out tree canopy. All voxels treated independently.
   //            Assume Kumaraswamy distribution.
   // Parameters 2 and 3: Amount knocked out depends on two parameters, knock_median and knocka.
+
   // Setting 6: Trees can shed lianas. Voxels treated independently. Kumaraswamy.
   // Parameters 4 and 5: shed_median and sheda.
 
@@ -2711,6 +2714,10 @@ void Initialise() {
         In >> m1; In.getline(buffer,128,'\n');
         In >> Cair; In.getline(buffer,128,'\n');
         iCair = 1.0/Cair;
+
+	// Read in a liana parameter here.
+	In >> vox_la_max; In.getline(buffer,128,'\n');
+
         if (_NDD) {
             cout << "argh! it's in the conditional!" << endl;
             In >> R; In.getline(buffer,128,'\n');

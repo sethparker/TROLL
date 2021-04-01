@@ -84,7 +84,7 @@ void sgenrand2i(unsigned long);
 
 fstream out,out2;
 
-fstream output[48];
+fstream output[49];
 
 /****************/
 /* User control */
@@ -1728,6 +1728,12 @@ void Tree::Growth(Tree *host=NULL) {
 
     if(t_from_Data)cout << "Height: " << t_Tree_Height << " CrownDepth: " << t_Crown_Depth << " GPP: " << t_GPP << " NPP: " << t_NPP << " leafarea: " << t_leafarea << endl;
 
+    if(_OUTPUT_reduced){
+    if(t_from_Data){
+    output[48] << "GPP: " << t_GPP << " NPP: " << t_NPP << " leafarea: " << t_leafarea << endl;
+    }
+    }
+
     if(t_NPP<0.0){
         t_NPPneg++;
         t_NPP=0.0;
@@ -3004,6 +3010,8 @@ void Initialise() {
             output[32].open(nnn,ios::out);
             sprintf(nnn,"%s_%i_litterfall.txt",buf, easympi_rank);
             output[27].open(nnn, ios::out);
+            sprintf(nnn, "%s_%i_from_data.txt",buf, easympi_rank);
+            output[48].open(nnn, ios::out);
             //sprintf(nnn,"%s_%i_endstate.txt",buf, easympi_rank);
             //output[30].open(nnn, ios::out);
         }

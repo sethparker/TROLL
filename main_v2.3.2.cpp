@@ -167,7 +167,10 @@ BAtot;
 
 float maxdens;
 
-float vox_la_max;
+float vox_la_max;        /* max voxel leaf area */
+float l_growth_scheme;        /* 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up */
+float knockout_max;        /* Parameter controlling the extent to which lianas can knock out trees */
+float shed_prob;        /* With this probability, the liana is completely shed from the voxel. */
 
 /*********************************************/
 /* Environmental variables of the simulation */
@@ -1792,9 +1795,9 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   //float vox_la_max = 1.0;  // The max voxel leaf area.
   int max_la_scheme = 0;
   float current_lai;
-  int l_growth_scheme = 0; // 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up
-  float knockout_max = 0.1; // Parameter controlling the extent to which lianas can knock out trees
-  float shed_prob = 0.05; // With this probability, the liana is completely shed from the voxel.
+  //int l_growth_scheme = 0; // 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up
+  //float knockout_max = 0.1; // Parameter controlling the extent to which lianas can knock out trees
+  //float shed_prob = 0.05; // With this probability, the liana is completely shed from the voxel.
   float total_shed;
   float total_knockout;
   float knockout;
@@ -2716,7 +2719,10 @@ void Initialise() {
         iCair = 1.0/Cair;
 
 	// Read in a liana parameter here.
-	In >> vox_la_max; In.getline(buffer,128,'\n');
+        In >> vox_la_max; In.getline(buffer,128,'\n');
+        In >> l_growth_scheme; In.getline(buffer,128,'\n');
+        In >> knockout_max; In.getline(buffer,128,'\n');
+        In >> shed_prob; In.getline(buffer,128,'\n');
 
         if (_NDD) {
             cout << "argh! it's in the conditional!" << endl;

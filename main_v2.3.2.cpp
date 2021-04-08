@@ -1730,10 +1730,10 @@ void Tree::Growth(Tree *host=NULL) {
 
     if(_OUTPUT_reduced){
     if(t_from_Data){
-    if(s_liana){
-    output[49] << t_GPP << "," << t_NPP << "," << t_leafarea << endl;
-    }  else  {
+    if(!t_s->s_liana){
     output[48] << t_GPP << "," << t_NPP << "," << t_leafarea << endl;
+    }  else  {
+    output[49] << t_GPP << "," << t_NPP << "," << t_leafarea << endl;
     }
     }
     }

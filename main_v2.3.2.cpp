@@ -1851,6 +1851,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	    t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] + 
 	    t_matureLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] +
 	    t_oldLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx];
+
 	}
       }
     }
@@ -1953,7 +1954,19 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
 	      }
 	      increment = minf(excess_la,
 				     maxf(0.,vox_la_max-current_lai));
-	      t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+	
+              cout << "Before adding leaves" << endl;
+	      cout << "t_LAvox: " << t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] <<
+		" height: " << hh-crown_bot << " y-location: " << CRMAX+diffy <<
+		" x-location: " << CRMAX+diffx << endl;
+        
+              t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
+
+              cout << "After adding leaves" << endl;
+	      cout << "t_LAvox: " << t_LAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] <<
+		" height: " << hh-crown_bot << " y-location: " << CRMAX+diffy <<
+		" x-location: " << CRMAX+diffx << endl;
+
 	      t_youngLAvox[hh-crown_bot][CRMAX+diffy][CRMAX+diffx] += increment;
 	      t_youngLA += increment;
 	      t_leafarea += increment;

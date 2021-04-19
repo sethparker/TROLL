@@ -171,7 +171,7 @@ float vox_la_max;        /* max voxel leaf area */
 float l_growth_scheme;        /* 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up */
 float knockout_max;        /* Parameter controlling the extent to which lianas can knock out trees */
 float shed_prob;        /* With this probability, the liana is completely shed from the voxel. */
-float max_la_scheme;	/* 0 = We apply the max leaf area for each stem individually; 1 = We apply the max leaf area to the sum of all stems in the voxel
+float max_la_scheme;	/* 0 = We apply the max leaf area for each stem individually; 1 = We apply the max leaf area to the sum of all stems in the voxel */
 float knock_median;
 float knocka;
 float shed_median;

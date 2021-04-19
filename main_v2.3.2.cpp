@@ -171,6 +171,11 @@ float vox_la_max;        /* max voxel leaf area */
 float l_growth_scheme;        /* 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up */
 float knockout_max;        /* Parameter controlling the extent to which lianas can knock out trees */
 float shed_prob;        /* With this probability, the liana is completely shed from the voxel. */
+float max_la_scheme;	/* 0 = We apply the max leaf area for each stem individually; 1 = We apply the max leaf area to the sum of all stems in the voxel
+float knock_median;
+float knocka;
+float shed_median;
+float sheda;
 
 /*********************************************/
 /* Environmental variables of the simulation */
@@ -1803,7 +1808,7 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   int crown_bot = (int) (t_Tree_Height - t_Crown_Depth)+1;
 
   //float vox_la_max = 1.0;  // The max voxel leaf area.
-  int max_la_scheme = 0;
+  //int max_la_scheme = 0;
   float current_lai;
   //int l_growth_scheme = 0; // 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up
   //float knockout_max = 0.1; // Parameter controlling the extent to which lianas can knock out trees
@@ -1811,12 +1816,12 @@ void Tree::UpdateLeafDynamics(Tree *ls_host=NULL) {
   float total_shed;
   float total_knockout;
   float knockout;
-  float knock_median = 0.05;
-  float knocka = 0.33;
+  //float knock_median = 0.05;
+  //float knocka = 0.33;
   float knockb = -log(2.0) / log(1.0-pow(knock_median,knocka));
   float shed_prop;
-  float shed_median = 0.05;
-  float sheda=0.33;
+  //float shed_median = 0.05;
+  //float sheda=0.33;
   float shedb = -log(2.0)/log(1.0-pow(shed_median,sheda));
   float increment;
   
@@ -2746,6 +2751,11 @@ void Initialise() {
         In >> l_growth_scheme; In.getline(buffer,128,'\n');
         In >> knockout_max; In.getline(buffer,128,'\n');
         In >> shed_prob; In.getline(buffer,128,'\n');
+        In >> max_la_scheme; In.getline(buffer,128,'\n');
+        In >> knock_median; In.getline(buffer,128,'\n');
+        In >> knocka; In.getline(buffer,128,'\n');
+        In >> shed_median; In.getline(buffer,128,'\n');
+        In >> sheda; In.getline(buffer,128,'\n');
 
         if (_NDD) {
             cout << "argh! it's in the conditional!" << endl;

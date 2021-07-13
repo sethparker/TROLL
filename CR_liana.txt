@@ -34,14 +34,14 @@
 0.035	/* minimal death rate
 0.035	/* m1 (slope of death rate)
 405	/* atmospheric CO2 concentration in micromol/mol */
-1	/* vox_la_max. The max voxel leaf area. */
-3	/* l_growth_scheme. 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up */
+1.9	/* vox_la_max. The max voxel leaf area. */
+0	/* l_growth_scheme. 0 = top down; 1 = random; 2 = homogeneous; 3 = bottom up */
 0.1	/* knockout_max. Parameter controlling the extent to which lianas can knock out trees */
 0.05	/* shed_prob. With this probability, the liana is completely shed from the voxel. */
-0	/* max_la_scheme. 0 = max leaf area each stem individ; 1 = max leaf area sum all stems in voxel */
-0.05	/* knock_median */
+1	/* max_la_scheme. 0 = max leaf area each stem individ; 1 = max leaf area sum all stems in voxel */
+0.028	/* knock_median */
 0.33	/* knocka */
-0.05	/* shed_median */
+0.028	/* shed_median */
 0.33	/* sheda */
 15  /* R # for NDD */
 1 /* deltaR # for NDD */

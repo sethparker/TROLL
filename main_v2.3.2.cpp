@@ -1736,9 +1736,9 @@ void Tree::Growth(Tree *host=NULL) {
     if(_OUTPUT_reduced){
     if(t_from_Data){
     if(!t_s->s_liana){
-    output[48] << t_GPP << "," << t_NPP << "," << t_leafarea << endl;
+    output[48] << t_GPP << "," << t_NPP << "," << t_leafarea << "," << t_Tree_Height << "," << t_Crown_Depth << "," << t_Crown_Radius << endl;
     }  else  {
-    output[49] << t_GPP << "," << t_NPP << "," << t_leafarea << endl;
+    output[49] << t_GPP << "," << t_NPP << "," << t_leafarea << "," << t_Tree_Height << "," << t_Crown_Depth << "," << t_Crown_Radius << endl;
     }
     }
     }
